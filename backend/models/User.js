@@ -10,7 +10,9 @@ const userSchema = new mongoose.Schema({
       token: String,
       createdAt: { type: Date, default: Date.now }
     }
-  ]
+  ],
+  resetPasswordToken: String,         // token for password reset
+  resetPasswordExpires: Date          // token expiry
 }, { timestamps: true });
 
 module.exports = mongoose.model('User', userSchema);
