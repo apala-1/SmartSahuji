@@ -1,16 +1,22 @@
 import React from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom"; // 1. Added useNavigate
 import "../Login/authstyle.css";
-// 1. Import the logo here
 import logoImg from "../../assets/images/logo.jpeg";
 
 const LoginPage = () => {
+  const navigate = useNavigate(); // 2. Initialize navigate
+
+  const handleLogin = () => {
+    // In a real app, you would verify the username/password here.
+    // For now, we redirect immediately to the dashboard.
+    navigate("/dashboard");
+  };
+
   return (
     <div className="auth-container">
       <div className="branding-side">
         <h2 className="welcome-text">WELCOME TO</h2>
         <div className="logo-circle">
-          {/* 2. Use the imported variable name */}
           <img src={logoImg} alt="SahuJi" />
         </div>
         <h1 className="brand-name">
@@ -24,17 +30,16 @@ const LoginPage = () => {
           <h2 className="form-title">Login</h2>
           <div className="input-group">
             <label>Username :</label>
-            <input type="text" />
+            <input type="text" placeholder="Enter username" />
           </div>
           <div className="input-group">
             <label>Password :</label>
-            <input type="password" />
+            <input type="password" placeholder="Enter password" />
           </div>
           <div className="form-footer">
             <Link to="/signup">
               <button className="new-user-btn">NEW USER?</button>
             </Link>
-            {/* Using a Link or Button fixes the ESLint warning */}
             <Link
               to="/forgot-password"
               title="Forgot Password"
@@ -43,7 +48,10 @@ const LoginPage = () => {
               FORGET PASSWORD?
             </Link>
           </div>
-          <button className="submit-btn">LOGIN</button>
+          {/* 3. Added onClick to trigger the redirect */}
+          <button className="submit-btn" onClick={handleLogin}>
+            LOGIN
+          </button>
         </div>
       </div>
     </div>
