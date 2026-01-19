@@ -14,6 +14,7 @@ import Analytics from "./pages/Analytics/Analytics";
 import DataSheet from "./pages/AddData/DataSheet";
 import UserDashboard from "./pages/Dashboard/Dashboard";
 import InventoryPage from "./pages/Inventory/Inventory";
+import SalesHistory from "./pages/ShowData/SalesHistory";
 
 function App() {
   return (
@@ -32,6 +33,7 @@ function App() {
         
         {/* Added the missing Inventory route here */}
         <Route path="/inventory" element={<><UserNavbar /><InventoryPage /></>} />
+        <Route path="/sales" element={<SalesHistory />} />
       </Routes>
     </Router>
   );

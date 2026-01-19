@@ -1,0 +1,72 @@
+/* Table container */
+.main-content {
+  padding: 20px;
+  background-color: #f4f6f8;
+  min-height: 100vh;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Page title */
+.main-content h2 {
+  margin-bottom: 15px;
+  color: #2c3e50;
+  font-size: 1.8rem;
+  font-weight: 600;
+}
+
+/* Table styling */
+.excel-main-grid {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: #ffffff;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+/* Table header */
+.excel-main-grid thead {
+  background-color: #1abc9c;
+  color: #ffffff;
+  font-weight: 600;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.excel-main-grid th,
+.excel-main-grid td {
+  padding: 12px 15px;
+  text-align: left;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+/* Alternate row colors */
+.excel-main-grid tbody tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+/* Row hover effect */
+.excel-main-grid tbody tr:hover {
+  background-color: #d1f0f0;
+  transition: background-color 0.2s ease;
+}
+
+/* Make table scrollable on small screens */
+@media (max-width: 768px) {
+  .excel-main-grid {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  .excel-main-grid th,
+  .excel-main-grid td {
+    padding: 10px 12px;
+  }
+}
+
+/* Optional: Add subtle shadow on table cells */
+.excel-main-grid td {
+  box-shadow: inset 0 -1px 0 rgba(0,0,0,0.02);
+}
