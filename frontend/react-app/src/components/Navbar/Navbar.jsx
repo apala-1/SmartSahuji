@@ -1,7 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 // Import your logo from your images folder
-import logoImg from "../../images/logo.png";
+import logoImg from "../../assets/images/logo.jpeg";
 
 function Navbar() {
   return (
