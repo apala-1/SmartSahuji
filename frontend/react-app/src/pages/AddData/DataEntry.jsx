@@ -10,10 +10,11 @@ const DataEntry = () => {
     category: "",
     price: "",
     saleType: "Retail Sale",
-    date: ""
+    date: "",
   });
 
-  // Check for token on mount
+  const [file, setFile] = useState(null);
+
   useEffect(() => {
     const token = localStorage.getItem("token")?.trim();
     if (!token) {
@@ -34,49 +35,61 @@ const DataEntry = () => {
     }
 
     const token = localStorage.getItem("token")?.trim();
-    if (!token) {
-      alert("Please log in first!");
-      navigate("/login");
-      return;
-    }
+    if (!token) return navigate("/login");
 
     try {
       const res = await fetch("http://localhost:5000/api/product", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           product: form.product,
           category: form.category,
           type: form.saleType,
           price: Number(form.price),
-          date: form.date
-        })
+          date: form.date,
+        }),
       });
 
       const data = await res.json();
+      if (!res.ok) return alert(data.error || "Failed to save sale");
 
-      if (!res.ok) {
-        console.error("Error saving:", data);
-        alert(data.error || "Failed to save sale");
-        return;
-      }
-
-      console.log("Saved:", data);
       alert("Sale saved successfully");
-
       setForm({
         product: "",
         category: "",
         price: "",
         saleType: "Retail Sale",
-        date: ""
+        date: "",
       });
     } catch (err) {
-      console.error("Error saving:", err);
+      console.error(err);
       alert("Failed to save sale");
+    }
+  };
+
+  const handleFileChange = (e) => setFile(e.target.files[0]);
+
+  const handleFileUpload = async () => {
+    if (!file) return alert("Please select a file first");
+    const token = localStorage.getItem("token")?.trim();
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const res = await fetch("http://localhost:5000/api/product/upload", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+      const data = await res.json();
+      if (!res.ok) return alert(data.error || "Upload failed");
+      alert(data.message);
+    } catch (err) {
+      console.error(err);
+      alert("Upload failed");
     }
   };
 
@@ -186,10 +199,19 @@ const DataEntry = () => {
                   <h4>Upload Ledger File</h4>
                   <p>Drag and drop your .csv or .xlsx file here</p>
 
-                  <input type="file" style={{ display: "none" }} id="csvUpload" />
+                  <input
+                    type="file"
+                    style={{ display: "none" }}
+                    id="csvUpload"
+                    onChange={handleFileChange}
+                  />
                   <label htmlFor="csvUpload" className="professional-upload-btn">
                     CHOOSE FILE
                   </label>
+
+                  <button className="save-record-btn" onClick={handleFileUpload}>
+                    UPLOAD
+                  </button>
                 </div>
               </div>
             </div>
