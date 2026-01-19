@@ -1,7 +1,7 @@
 import React from "react";
 import { Link, useNavigate } from "react-router-dom";
 import logoImg from "../../assets/images/logo.jpeg";
-import "./UserNavbar.css"; // Import the separate CSS file
+import "./UserNavbar.css";
 
 function UserNavbar() {
   const navigate = useNavigate();
@@ -28,18 +28,22 @@ function UserNavbar() {
           Inventory
         </Link>
 
+        {/* NEW LINK ADDED HERE */}
+        <Link to="/sales" className="user-nav-item">
+          Sales History
+        </Link>
+
         <div className="user-profile-section">
           <div className="user-avatar-circle">S</div>
           <Link
-  to="/login"
-  className="user-logout-btn"
-  onClick={() => {
-    localStorage.removeItem("token"); // remove token
-  }}
->
-  Logout
-</Link>
-
+            to="/login"
+            className="user-logout-btn"
+            onClick={() => {
+              localStorage.removeItem("token"); // remove token
+            }}
+          >
+            Logout
+          </Link>
         </div>
       </div>
     </nav>
