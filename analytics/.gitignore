@@ -1,0 +1,27 @@
+# Python compiled files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environment
+venv/
+env/
+
+# IDE / editor files
+*.vscode/
+*.idea/
+
+# Python package files
+*.egg-info/
+*.egg
+
+# Logs
+*.log
+
+# Plotly / charts cache (if any)
+*.html
+*.png
+
+# API keys / secrets
+.env
