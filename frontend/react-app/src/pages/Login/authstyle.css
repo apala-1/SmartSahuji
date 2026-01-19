@@ -22,25 +22,20 @@
     letter-spacing: 2px;
     margin-bottom: 20px;
 }
+
 .logo-circle {
-  width: 300px;
-  height: 300px;
-  border: 8px solid #ffcc00;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  background-color: #fff; /* Ensures no weird gaps */
+    width: 300px;
+    height: 300px;
+    border: 8px solid #ffcc00;
+    border-radius: 50%;
+    overflow: hidden;
+    position: relative;
 }
 
 .logo-circle img {
-  width: 100%;
-  height: 100%;
-  /* This is the key property! */
-  object-fit: contain; 
-  /* If your image has a white background, 'contain' is best. 
-     If you want it to fill the whole circle, use 'cover'. */
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }
 
 .brand-name {
