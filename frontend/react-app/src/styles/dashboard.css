@@ -1,0 +1,69 @@
+/* Dashboard Specific Styles */
+.dashboard-container {
+    background: linear-gradient(135deg, #ffa500, #cc7a00);
+    min-height: 100vh;
+    padding: 40px;
+    font-family: 'Arial', sans-serif;
+}
+
+.header-section {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.mini-logo {
+    width: 80px;
+    height: 80px;
+    background: white;
+    border-radius: 50%;
+    border: 3px solid #ffcc00;
+    overflow: hidden;
+}
+
+.main-title {
+    color: white;
+    font-size: 3.5rem;
+    font-weight: 900;
+    text-align: right;
+}
+
+/* Improvement: Glassmorphism for the CSV box */
+.upload-box {
+    background: rgba(255, 255, 255, 0.2);
+    border: 2px dashed #ffffff;
+    border-radius: 15px;
+    padding: 20px;
+    text-align: center;
+    color: white;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.upload-box:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.data-flex {
+    display: flex;
+    gap: 30px;
+    align-items: center;
+}
+
+.suggestion-bar {
+    background: #e0e0e0;
+    padding: 15px;
+    border-radius: 10px;
+    margin-top: 20px;
+    font-weight: bold;
+    border-left: 5px solid #000;
+}
+
+.chart-placeholder {
+    background: white;
+    border-radius: 10px;
+    padding: 10px;
+    width: 100%;
+    margin-top: 15px;
+}
