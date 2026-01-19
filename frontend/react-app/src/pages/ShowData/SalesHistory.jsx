@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import UserNavbar from "../../components/Navbar/UserNavbar";
-import './SalesHistory.css'
+import "./SalesHistory.css";
 
 export default function SalesHistory() {
   const navigate = useNavigate();
   const [sales, setSales] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     const token = localStorage.getItem("token")?.trim();
@@ -20,11 +22,11 @@ export default function SalesHistory() {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`
-      }
+        Authorization: `Bearer ${token}`,
+      },
     })
       .then((res) => {
-        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        if (!res.ok) throw new Error("Failed to fetch sales data");
         return res.json();
       })
       .then((data) => {
@@ -32,16 +34,45 @@ export default function SalesHistory() {
         else setSales([]);
       })
       .catch((err) => {
-        console.error("Fetch error:", err);
+        setError(err.message || "Something went wrong");
         setSales([]);
-      });
+      })
+      .finally(() => setLoading(false));
   }, [navigate]);
+
+  if (loading) {
+    return (
+      <>
+        <UserNavbar />
+        <div className="main-content">
+          <h2>Sales Ledger</h2>
+          <p>Loading...</p>
+        </div>
+      </>
+    );
+  }
+
+  if (error) {
+    return (
+      <>
+        <UserNavbar />
+        <div className="main-content">
+          <h2>Sales Ledger</h2>
+          <p style={{ color: "red" }}>{error}</p>
+        </div>
+      </>
+    );
+  }
 
   return (
     <>
       <UserNavbar />
       <div className="main-content">
         <h2>Sales Ledger</h2>
+
+        <button className="analyze-btn" onClick={() => navigate("/analytics")}>
+          Analyze Data
+        </button>
 
         <table className="excel-main-grid">
           <thead>
@@ -50,6 +81,8 @@ export default function SalesHistory() {
               <th>Category</th>
               <th>Type</th>
               <th>Amount (Rs)</th>
+              <th>Cost (Rs)</th>
+              <th>Quantity</th>
               <th>Date</th>
             </tr>
           </thead>
@@ -61,6 +94,8 @@ export default function SalesHistory() {
                 <td>{s.category}</td>
                 <td>{s.type}</td>
                 <td>{s.price}</td>
+                <td>{s.cost}</td>
+                <td>{s.quantity}</td>
                 <td>{new Date(s.date).toLocaleDateString()}</td>
               </tr>
             ))}

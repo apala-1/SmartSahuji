@@ -1,66 +1,213 @@
-import React from "react";
-import "../../styles/dashboard.css";
+import React, { useState } from "react";
+import UserNavbar from "../../components/Navbar/UserNavbar";
+import { useNavigate } from "react-router-dom";
+import {
+  LineChart,
+  Line,
+  CartesianGrid,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+} from "recharts";
+import "../ShowData/SalesHistory.css";
 
-const Analytics = () => {
+export default function Analytics() {
+  const navigate = useNavigate();
+  const [period, setPeriod] = useState("weekly");
+  const [data, setData] = useState(null);
+
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [category, setCategory] = useState("");
+
+  const fetchData = () => {
+    const token = localStorage.getItem("token")?.trim();
+    if (!token) {
+      alert("Please log in first!");
+      navigate("/login");
+      return;
+    }
+
+    let url = `http://localhost:8000/analytics?period=${period}`;
+
+    if (startDate) url += `&start_date=${startDate}`;
+    if (endDate) url += `&end_date=${endDate}`;
+    if (category) url += `&category=${category}`;
+
+    fetch(url, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+      .then((res) => res.json())
+      .then((json) => setData(json))
+      .catch((err) => console.error(err));
+  };
+
   return (
-    <div className="dashboard-container">
-      {/* Main Analytics Box - Everything is now inside this container */}
-      <div className="form-box analytics-large-box">
-        {/* Top Section: Filter and KPI Summary */}
-        <div className="analytics-top-row">
-          <div className="input-group select-wrapper">
-            <label>View Report By:</label>
-            <select className="sahu-select">
-              <option>Weekly Report</option>
-              <option>Monthly Report</option>
-              <option>Product Wise</option>
-            </select>
-          </div>
+    <>
+      <div className="main-content">
+        <h2>Sales Analytics</h2>
 
-          <div className="kpi-mini-box">
-            <div className="kpi-item">
-              <label>TOTAL SALES</label>
-              <div className="kpi-value">Rs. 85,400</div>
-            </div>
-            <div className="kpi-item">
-              <label>PROFIT</label>
-              <div className="kpi-value profit-green">Rs. 12,200</div>
-            </div>
-          </div>
+        <div className="filters">
+          <select value={period} onChange={(e) => setPeriod(e.target.value)}>
+            <option value="weekly">Weekly</option>
+            <option value="monthly">Monthly</option>
+            <option value="yearly">Yearly</option>
+          </select>
+
+          <input
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+          />
+
+          <input
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+          />
+
+          <input
+            type="text"
+            placeholder="Category"
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+          />
+
+          <button className="analyze-btn" onClick={fetchData}>
+            Analyze
+          </button>
         </div>
 
-        {/* The Graph Area - Matches the white box style from your reference */}
-        <div className="chart-container-white">
-          <label className="chart-label">SALES TREND GRAPH</label>
-          <div className="visual-chart">
-            {/* This area represents the graph visualized in your design */}
-            <div className="chart-line-placeholder"></div>
-          </div>
-        </div>
+        {!data && <p>Please click Analyze to generate report</p>}
 
-        {/* Enhanced Insight Section */}
-        <div className="insight-grid">
-          <div className="suggestion-bar sahu-alert">
-            <label>SMART SUGGESTION</label>
-            <p>YO X PRODUCT RAMRO SELL BHAKO CHA!!</p>
+        {data && (
+          <div className="analytics-summary">
+            <p>Total Revenue: {data.summary.total_revenue}</p>
+            <p>Total Profit: {data.summary.total_profit}</p>
+            <p>Total Orders: {data.summary.total_orders}</p>
           </div>
+        )}
 
-          <div className="inventory-status">
-            <label>STOCK ALERTS</label>
+        {data && (
+          <>
+            <h3>Trend (Revenue vs Profit)</h3>
+            <div className="chart-container small">
+              <ResponsiveContainer>
+                <LineChart data={data.trend_series}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="period" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Line type="monotone" dataKey="revenue" />
+                  <Line type="monotone" dataKey="profit" />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </>
+        )}
+
+        {data && (
+          <>
+            <h3>Revenue vs Profit by Category</h3>
+            <div className="chart-container small">
+              <ResponsiveContainer>
+                <BarChart data={data.category_stats} barSize={12}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="category" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="revenue" />
+                  <Bar dataKey="profit" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </>
+        )}
+
+        {data && (
+          <>
+            <h3>Profit by Category</h3>
+            <div className="chart-container small">
+              <ResponsiveContainer>
+                <BarChart data={data.category_stats} barSize={12}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="category" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="profit" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </>
+        )}
+
+        {data && (
+          <>
+            <h3>Loss by Category</h3>
+            <div className="chart-container small">
+              <ResponsiveContainer>
+                <BarChart data={data.category_stats} barSize={12}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="category" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="loss" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </>
+        )}
+
+        {data && (
+          <>
+            <h3>Profit Margin by Category</h3>
+            <div className="chart-container small">
+              <ResponsiveContainer>
+                <BarChart data={data.category_stats} barSize={12}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="category" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="profit_margin" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </>
+        )}
+
+        {data && (
+          <>
+            <h3>Top 5 Products by Profit</h3>
             <ul>
-              <li>⚠️ Sugar is running low</li>
-              <li>✅ Rice is fully stocked</li>
+              {data.top_products.map((p) => (
+                <li key={p.product}>
+                  {p.product} - Profit: {p.profit}
+                </li>
+              ))}
             </ul>
-          </div>
-        </div>
 
-        {/* Button is now inside the container to match original design flow */}
-        <div className="button-footer">
-          <button className="submit-btn sahu-btn-big">CONTINUE</button>
-        </div>
+            <h3>Top 5 Products by Profit Margin</h3>
+            <ul>
+              {data.top_margin_products.map((p) => (
+                <li key={p.product}>
+                  {p.product} - Margin: {(p.profit_margin * 100).toFixed(2)}%
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
       </div>
-    </div>
+    </>
   );
-};
-
-export default Analytics;
+}
