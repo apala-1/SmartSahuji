@@ -30,9 +30,16 @@ function UserNavbar() {
 
         <div className="user-profile-section">
           <div className="user-avatar-circle">S</div>
-          <Link to="/login" className="user-logout-btn">
-            Logout
-          </Link>
+          <Link
+  to="/login"
+  className="user-logout-btn"
+  onClick={() => {
+    localStorage.removeItem("token"); // remove token
+  }}
+>
+  Logout
+</Link>
+
         </div>
       </div>
     </nav>

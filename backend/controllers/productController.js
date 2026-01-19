@@ -3,11 +3,16 @@ const Product = require('../models/Product');
 // Add a new product (protected)
 exports.addProduct = async (req, res) => {
   try {
-    const { product, inventory, type, price, date } = req.body;
+    const { product, category, type, price, date } = req.body;
+
+    // Validation: make sure all required fields exist
+    if (!product || !category || !type || !price || !date) {
+      return res.status(400).json({ error: 'All fields are required' });
+    }
 
     const newProduct = new Product({
       product,
-      inventory,
+      category,
       type,
       price,
       date,
@@ -45,15 +50,16 @@ exports.deleteProduct = async (req, res) => {
   }
 };
 
-// Update a product (optional)
+// Update a product (protected)
 exports.updateProduct = async (req, res) => {
   try {
     const { id } = req.params;
-    const { product, inventory, type, price, date } = req.body;
+    const { product, category, type, price, date } = req.body;
 
+    // Only update the fields that exist in the request
     const updated = await Product.findOneAndUpdate(
       { _id: id, user: req.user.id },
-      { product, inventory, type, price, date },
+      { product, category, type, price, date },
       { new: true }
     );
 

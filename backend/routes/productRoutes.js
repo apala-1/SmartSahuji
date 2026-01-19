@@ -1,12 +1,17 @@
 const express = require('express');
 const router = express.Router();
-const productController = require('../controllers/productController');
-const auth = require('../middleware/authMiddleware');
+const {
+  addProduct,
+  getProducts,
+  deleteProduct,
+  updateProduct
+} = require('../controllers/productController');
 
-// Protected routes
-router.post('/add', auth, productController.addProduct);
-router.get('/all', auth, productController.getProducts);
-router.delete('/delete/:id', auth, productController.deleteProduct);
-router.put('/update/:id', auth, productController.updateProduct);
+const auth = require('../middleware/authMiddleware'); // JWT middleware
+
+router.post('/', auth, addProduct);
+router.get('/', auth, getProducts);
+router.delete('/:id', auth, deleteProduct);
+router.put('/:id', auth, updateProduct);
 
 module.exports = router;
