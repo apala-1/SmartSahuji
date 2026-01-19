@@ -1,9 +1,8 @@
 const express = require("express");
 const router = express.Router();
-const { generateInsights } = require("../controllers/insightsController");
-const auth = require("../middleware/authMiddleware"); // make sure JWT is checked
+const auth = require("../middleware/authMiddleware");
+const { getInsights } = require("../controllers/insightsController");
 
-// GET /api/insights
-router.get("/", auth, generateInsights);
+router.get("/", auth, getInsights);
 
 module.exports = router;

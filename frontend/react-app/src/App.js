@@ -17,6 +17,8 @@ import InventoryPage from "./pages/Inventory/Inventory";
 import SalesHistory from "./pages/ShowData/SalesHistory";
 import ForgotPassword from "./pages/ForgotPassword/ForgotPassword";
 import ResetPassword from "./pages/ForgotPassword/ResetPassword";
+import Insights from "./components/Insights";
+
 
 function App() {
   return (
@@ -39,6 +41,17 @@ function App() {
 
         <Route path="/forgot-password" element={<ForgotPassword />} />
     <Route path="/reset-password/:token" element={<ResetPassword />} />
+
+    <Route
+  path="/insights"
+  element={
+    <>
+      <UserNavbar />
+      <Insights />
+    </>
+  }
+/>
+
       </Routes>
     </Router>
   );
