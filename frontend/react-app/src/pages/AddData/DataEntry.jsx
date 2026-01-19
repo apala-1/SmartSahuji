@@ -95,8 +95,6 @@ const DataEntry = () => {
 
   return (
     <div className="page-wrapper">
-      <UserNavbar />
-
       <main className="main-content">
         <div className="full-page-entry">
           <div className="entry-container wide-container">
@@ -178,7 +176,10 @@ const DataEntry = () => {
                       onChange={handleChange}
                     />
                   </div>
-                  <div className="input-group" style={{ visibility: "hidden" }} />
+                  <div
+                    className="input-group"
+                    style={{ visibility: "hidden" }}
+                  />
                 </div>
 
                 <button className="save-record-btn" onClick={handleSubmit}>
@@ -205,11 +206,17 @@ const DataEntry = () => {
                     id="csvUpload"
                     onChange={handleFileChange}
                   />
-                  <label htmlFor="csvUpload" className="professional-upload-btn">
+                  <label
+                    htmlFor="csvUpload"
+                    className="professional-upload-btn"
+                  >
                     CHOOSE FILE
                   </label>
 
-                  <button className="save-record-btn" onClick={handleFileUpload}>
+                  <button
+                    className="save-record-btn"
+                    onClick={handleFileUpload}
+                  >
                     UPLOAD
                   </button>
                 </div>

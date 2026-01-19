@@ -70,3 +70,18 @@
 .excel-main-grid td {
   box-shadow: inset 0 -1px 0 rgba(0,0,0,0.02);
 }
+
+/* ===== SMALLER CHARTS ===== */
+.chart-container {
+  width: 80%;
+  max-width: 900px;
+  height: 240px;
+  margin: 0 auto 18px;
+}
+
+.chart-container.small {
+  width: 80%;
+  max-width: 900px;
+  height: 180px;
+  margin: 0 auto 15px;
+}
