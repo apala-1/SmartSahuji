@@ -11,6 +11,8 @@ const uploadRoutes = require("./routes/uploadRoutes");
 const app = express();
 
 // Middleware
+
+// Middleware
 app.use(cors());
 app.use(express.json());
 
@@ -29,6 +31,7 @@ mongoose.connect("mongodb://127.0.0.1:27017/smartSahuji", {
   console.error(err.message);
 });
 
+// Routes
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/product", productRoutes);

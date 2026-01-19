@@ -1,0 +1,119 @@
+/* Full viewport container with no branding colors */
+.excel-page-container {
+    background-color: #ffffff;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    font-family: 'Segoe UI', Tahoma, sans-serif;
+    color: #333;
+}
+
+/* Minimalist Menu */
+.excel-menu-bar {
+    background: #f8f9fa;
+    display: flex;
+    padding: 10px 25px;
+    border-bottom: 1px solid #ced4da;
+    align-items: center;
+}
+
+.menu-item {
+    padding: 4px 12px;
+    font-size: 13px;
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+.menu-item.active {
+    background-color: #e9ecef;
+    font-weight: 600;
+    color: #212529;
+}
+
+/* Professional Spreadsheet Grid */
+.excel-spreadsheet-area {
+    flex: 1;
+    overflow: auto;
+}
+
+.excel-main-grid {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+}
+
+.excel-header-col {
+    background: #f1f3f5;
+    border: 1px solid #dee2e6;
+    font-size: 11px;
+    font-weight: 600;
+    color: #495057;
+    padding: 8px;
+    text-align: center;
+}
+
+.excel-index-cell {
+    background: #f1f3f5;
+    border: 1px solid #dee2e6;
+    text-align: center;
+    font-size: 10px;
+    color: #868e96;
+    width: 35px;
+}
+
+.excel-main-grid td {
+    border: 1px solid #dee2e6;
+    padding: 0;
+}
+
+/* Clean Inputs - No Colors */
+.excel-input {
+    width: 100%;
+    border: none;
+    padding: 10px;
+    font-size: 13px;
+    outline: none;
+    background: transparent;
+    transition: background 0.1s;
+}
+
+.excel-input:focus {
+    background-color: #ffffff;
+    box-shadow: inset 0 0 0 2px #212529; /* Neutral black focus border */
+    z-index: 2;
+    position: relative;
+}
+
+/* Footer Section */
+.excel-bottom-bar {
+    background: #f8f9fa;
+    border-top: 1px solid #ced4da;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 20px;
+}
+
+.tab {
+    padding: 6px 20px;
+    font-size: 12px;
+    cursor: pointer;
+    border-top: 2px solid transparent;
+}
+
+.active-tab {
+    background: #fff;
+    border-top: 2px solid #212529;
+    font-weight: bold;
+}
+
+.excel-btn-primary {
+    background: #212529; /* Professional Black */
+    color: white;
+    border: none;
+    padding: 8px 24px;
+    font-size: 12px;
+    font-weight: bold;
+    cursor: pointer;
+    text-transform: uppercase;
+}
