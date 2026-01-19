@@ -1,12 +1,14 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
 const productSchema = new mongoose.Schema({
-  product: { type: String, required: true },          // Product name
-  category: { type: String, required: true },         // NEW
-  type: { type: String, required: true },             // Retail / Wholesale
-  price: { type: Number, required: true },            // Money received
+  product: { type: String, required: true },
+  category: { type: String, required: true },
+  type: { type: String, required: true },
+  price: { type: Number, required: true },
+  cost: { type: Number, required: true },  
+  quantity: { type: Number, required: true },  // ✅ added quantity
   date: { type: Date, required: true },
-  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }
+  user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
 }, { timestamps: true });
 
-module.exports = mongoose.model('Product', productSchema);
+module.exports = mongoose.model("Product", productSchema);

@@ -2,14 +2,13 @@ const Product = require("../models/Product");
 const csv = require("csv-parse");
 const XLSX = require("xlsx");
 const fs = require("fs");
-const path = require("path");
 
 // Add a new product (protected)
 exports.addProduct = async (req, res) => {
   try {
-    const { product, category, type, price, date } = req.body;
+    const { product, category, type, price, cost, date, quantity } = req.body;
 
-    if (!product || !category || !type || !price || !date)
+    if (!product || !category || !type || !price || !cost || !date || !quantity)
       return res.status(400).json({ error: "All fields are required" });
 
     const newProduct = new Product({
@@ -17,6 +16,8 @@ exports.addProduct = async (req, res) => {
       category,
       type,
       price,
+      cost,
+      quantity,            // ✅ added quantity
       date,
       user: req.user.id,
     });
@@ -54,11 +55,11 @@ exports.deleteProduct = async (req, res) => {
 exports.updateProduct = async (req, res) => {
   try {
     const { id } = req.params;
-    const { product, category, type, price, date } = req.body;
+    const { product, category, type, price, cost, date, quantity } = req.body;
 
     const updated = await Product.findOneAndUpdate(
       { _id: id, user: req.user.id },
-      { product, category, type, price, date },
+      { product, category, type, price, cost, date, quantity }, // ✅ added quantity
       { new: true }
     );
 
@@ -90,6 +91,8 @@ exports.uploadFile = async (req, res) => {
             category: row.category,
             type: row.type,
             price: Number(row.price),
+            cost: Number(row.cost),
+            quantity: Number(row.quantity),   // ✅ added quantity
             date: row.date,
             user: req.user.id,
           });
@@ -114,10 +117,13 @@ exports.uploadFile = async (req, res) => {
           category: row.category,
           type: row.type,
           price: Number(row.price),
+          cost: Number(row.cost),
+          quantity: Number(row.quantity),   // ✅ added quantity
           date: row.date,
           user: req.user.id,
         });
       });
+
       await Product.insertMany(products);
       res.json({ message: "Products uploaded successfully" });
     } else {
