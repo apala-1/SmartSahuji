@@ -21,6 +21,9 @@ function UserNavbar() {
         <Link to="/data-entry" className="user-nav-item">
           Sales Entry
         </Link>
+        <Link to="/sales" className="user-nav-item">
+          Sales Data
+        </Link>
         <Link to="/analytics" className="user-nav-item">
           Analytics
         </Link>

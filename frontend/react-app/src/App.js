@@ -15,6 +15,8 @@ import DataSheet from "./pages/AddData/DataSheet";
 import UserDashboard from "./pages/Dashboard/Dashboard";
 import InventoryPage from "./pages/Inventory/Inventory";
 import SalesHistory from "./pages/ShowData/SalesHistory";
+import ForgotPassword from "./pages/ForgotPassword/ForgotPassword";
+import ResetPassword from "./pages/ForgotPassword/ResetPassword";
 
 function App() {
   return (
@@ -34,6 +36,9 @@ function App() {
         {/* Added the missing Inventory route here */}
         <Route path="/inventory" element={<><UserNavbar /><InventoryPage /></>} />
         <Route path="/sales" element={<SalesHistory />} />
+
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+    <Route path="/reset-password/:token" element={<ResetPassword />} />
       </Routes>
     </Router>
   );

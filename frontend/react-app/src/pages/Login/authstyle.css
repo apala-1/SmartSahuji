@@ -18,15 +18,15 @@
 
 .welcome-text {
     color: #ff0000;
-    font-weight: bold;
-    letter-spacing: 2px;
+    font-weight: regular;
+    letter-spacing: -2px;
     margin-bottom: 20px;
 }
 
 .logo-circle {
     width: 300px;
     height: 300px;
-    border: 8px solid #ffcc00;
+    border: 8px solid #ffffff;
     border-radius: 50%;
     overflow: hidden;
     position: relative;
@@ -52,7 +52,7 @@
 /* Right Side - Forms */
 .form-side {
     flex: 1;
-    background: linear-gradient(to bottom, #ffa500, #cc7a00);
+    background: linear-gradient(to bottom, #ffa500, #ba6f00);
     display: flex;
     align-items: center;
     justify-content: center;
