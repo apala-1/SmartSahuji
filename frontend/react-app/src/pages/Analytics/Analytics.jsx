@@ -1,5 +1,5 @@
 import React from "react";
-import logoImg from "../../images/logo.png";
+import logoImg from "../../assets/images/logo.jpeg";
 import "../../styles/dashboard.css";
 
 const Analytics = () => {

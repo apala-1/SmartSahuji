@@ -2,7 +2,6 @@ import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 
 // 1. IMPORT NAVBAR (This fixes the 'Navbar' is not defined error)
-import Navbar from "./components/Navbar"; 
 
 // 2. IMPORT ALL YOUR PAGES
 import LandingPage from "./pages/Landing/LandingPage";
