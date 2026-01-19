@@ -5,14 +5,19 @@ import axios from "axios";
 import logoImg from "../../assets/images/logo.jpeg";
 
 const LoginPage = () => {
-  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState(""); // changed from username
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
 
   const handleLogin = async () => {
+    if (!email || !password) {
+      alert("Please fill all fields");
+      return;
+    }
+
     try {
       const res = await axios.post("http://localhost:5000/api/auth/login", {
-        username,
+        email, // send email instead of username
         password,
       });
 
@@ -20,7 +25,7 @@ const LoginPage = () => {
       localStorage.setItem("token", res.data.token);
 
       alert("Login successful!");
-      navigate("/dashboard"); // redirect to dashboard after login
+      navigate("/dashboard"); // redirect to dashboard
     } catch (err) {
       console.error(err);
       alert(err.response?.data?.error || "Login failed");
@@ -44,11 +49,11 @@ const LoginPage = () => {
         <div className="form-box">
           <h2 className="form-title">Login</h2>
           <div className="input-group">
-            <label>Username :</label>
+            <label>Email :</label>
             <input
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
             />
           </div>
           <div className="input-group">
