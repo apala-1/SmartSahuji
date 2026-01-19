@@ -5,6 +5,7 @@ const cors = require("cors");
 require('dotenv').config()
 
 const authRoutes = require("./routes/authRoutes");
+const productRoutes = require("./routes/productRoutes");
 const salesRoutes = require("./routes/salesRoutes");
 const uploadRoutes = require("./routes/uploadRoutes");
 
@@ -17,6 +18,7 @@ mongoose.connect("mongodb://localhost:27017/smartSahuji")
 .catch(err => console.log(err));
 
 app.use("/api/auth", authRoutes);
+app.use("/api/product", productRoutes);
 app.use("/api/sales", salesRoutes);
 app.use("/api/upload", uploadRoutes);
 
