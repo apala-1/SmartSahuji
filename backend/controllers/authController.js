@@ -28,17 +28,18 @@ exports.register = async (req, res) => {
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
-
-    // Find user
     const user = await User.findOne({ email });
     if (!user) return res.status(400).json({ error: 'User not found' });
 
-    // Check password
     const valid = await bcrypt.compare(password, user.password);
     if (!valid) return res.status(400).json({ error: 'Invalid password' });
 
-    // Sign JWT
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+
+    // Update lastLogin and store session token
+    user.lastLogin = new Date();
+    user.sessions.push({ token });
+    await user.save();
 
     res.json({ token, username: user.username, email: user.email });
   } catch (err) {
