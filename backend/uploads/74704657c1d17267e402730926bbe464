@@ -1,0 +1,11 @@
+product_name,category,quantity,price,date
+Notebook,Stationery,10,500,2026-01-01
+Pen,Stationery,50,200,2026-01-01
+Water Bottle,Accessories,15,750,2026-01-02
+Backpack,Accessories,5,2500,2026-01-02
+Notebook,Stationery,8,400,2026-01-03
+Pen,Stationery,30,120,2026-01-03
+Water Bottle,Accessories,20,1000,2026-01-04
+Backpack,Accessories,7,3500,2026-01-04
+Notebook,Stationery,12,600,2026-01-05
+Pen,Stationery,40,160,2026-01-05
