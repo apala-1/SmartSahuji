@@ -1,69 +1,149 @@
-/* Dashboard Specific Styles */
-.dashboard-container {
-    background: linear-gradient(135deg, #ffa500, #cc7a00);
+.page-wrapper {
+    display: flex;
+    flex-direction: column;
     min-height: 100vh;
-    padding: 40px;
-    font-family: 'Arial', sans-serif;
+    background-color: #f4f7f6;
 }
 
-.header-section {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-}
-
-.mini-logo {
-    width: 80px;
-    height: 80px;
-    background: white;
-    border-radius: 50%;
-    border: 3px solid #ffcc00;
-    overflow: hidden;
-}
-
-.main-title {
-    color: white;
-    font-size: 3.5rem;
-    font-weight: 900;
-    text-align: right;
-}
-
-/* Improvement: Glassmorphism for the CSV box */
-.upload-box {
-    background: rgba(255, 255, 255, 0.2);
-    border: 2px dashed #ffffff;
-    border-radius: 15px;
-    padding: 20px;
-    text-align: center;
-    color: white;
-    cursor: pointer;
-    transition: 0.3s;
-}
-
-.upload-box:hover {
-    background: rgba(255, 255, 255, 0.3);
-}
-
-.data-flex {
-    display: flex;
-    gap: 30px;
-    align-items: center;
-}
-
-.suggestion-bar {
-    background: #e0e0e0;
-    padding: 15px;
-    border-radius: 10px;
-    margin-top: 20px;
-    font-weight: bold;
-    border-left: 5px solid #000;
-}
-
-.chart-placeholder {
-    background: white;
-    border-radius: 10px;
-    padding: 10px;
+/* This ensures the content starts AFTER the navbar without looking like a second one */
+.main-content {
+    flex: 1;
     width: 100%;
-    margin-top: 15px;
+}
+
+.full-page-entry {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 40px 20px; /* Adjusted padding */
+}
+
+.wide-container {
+    background: #ffffff;
+    width: 100%;
+    max-width: 1150px;
+    border-radius: 20px;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.04);
+    padding: 60px;
+    border: 1px solid rgba(0,0,0,0.05);
+}
+
+.entry-header {
+    border-bottom: 1px solid #edf2f7;
+    margin-bottom: 40px;
+    padding-bottom: 25px;
+}
+
+.entry-header h2 {
+    font-size: 28px;
+    font-weight: 800;
+    color: #1a202c;
+}
+
+.entry-header p {
+    color: #718096;
+    margin-top: 5px;
+}
+
+.spaced-grid {
+    display: flex;
+    gap: 60px; /* Slightly reduced for better fit */
+}
+
+.spaced-row {
+    margin-bottom: 25px;
+}
+
+.section-subtitle {
+    font-size: 11px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #a0aec0;
+    margin-bottom: 30px;
+}
+
+.input-group label {
+    font-size: 11px;
+    font-weight: 700;
+    color: #4a5568;
+    margin-bottom: 8px;
+}
+
+.input-group input, 
+.form-select {
+    padding: 12px 14px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 14px;
+    background-color: #f8fafc;
+}
+
+.input-group input:focus, 
+.form-select:focus {
+    background-color: #fff;
+    border-color: #000;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.05);
+}
+
+.save-record-btn {
+    width: 100%;
+    background: #1a202c;
+    color: #fff;
+    border: none;
+    padding: 16px;
+    border-radius: 10px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.save-record-btn:hover {
+    background: #000;
+}
+
+.vertical-divider {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    width: 40px;
+}
+
+.vertical-divider::before {
+    content: "";
+    position: absolute;
+    height: 100%;
+    width: 1px;
+    background: #e2e8f0;
+}
+
+.vertical-divider span {
+    z-index: 1;
+    background: #fff;
+    padding: 10px 0;
+    font-size: 12px;
+    font-weight: bold;
+    color: #cbd5e0;
+}
+
+.upload-card {
+    border: 2px dashed #cbd5e0;
+    border-radius: 12px;
+    background: #f8fafc;
+    text-align: center;
+}
+
+.extra-padding {
+    padding: 60px 30px;
+}
+
+.professional-upload-btn {
+    border: 1px solid #1a202c;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-block;
 }

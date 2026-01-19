@@ -1,0 +1,96 @@
+/* Main Navbar Container */
+.user-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 5%;
+    background-color: #ffffff; /* Premium White */
+    color: #333;
+    box-shadow: 0 2px 15px rgba(0,0,0,0.06);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+}
+
+/* Logo Section */
+.user-nav-logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+}
+
+.user-nav-img {
+    height: 40px;
+    width: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #ffcc00;
+}
+
+.user-nav-text {
+    font-weight: 900;
+    font-size: 22px;
+    color: #1a202c;
+}
+
+.highlight-text {
+    color: #ffcc00;
+}
+
+/* Links Section */
+.user-nav-links {
+    display: flex;
+    align-items: center;
+}
+
+.user-nav-item {
+    margin-left: 30px;
+    color: #718096; /* Professional Gray */
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 700;
+    transition: all 0.2s ease;
+}
+
+.user-nav-item:hover {
+    color: #1a202c;
+}
+
+/* Profile & Logout */
+.user-profile-section {
+    display: flex;
+    align-items: center;
+    margin-left: 30px;
+    padding-left: 20px;
+    border-left: 1px solid #edf2f7;
+    gap: 12px;
+}
+
+.user-avatar-circle {
+    width: 35px;
+    height: 35px;
+    background-color: #f7fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    color: #4a5568;
+}
+
+.user-logout-btn {
+    color: #fff;
+    background-color: #ff4d4d; /* Alert Red */
+    padding: 8px 18px;
+    border-radius: 20px;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: bold;
+    transition: background 0.2s;
+}
+
+.user-logout-btn:hover {
+    background-color: #e63939;
+}

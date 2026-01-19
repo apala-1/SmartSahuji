@@ -1,30 +1,37 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 
-// 1. IMPORT NAVBAR (This fixes the 'Navbar' is not defined error)
-import Navbar from "./components/Navbar/Navbar";
-// 2. IMPORT ALL YOUR PAGES
+// NAVBAR IMPORTS
+import Navbar from "./components/Navbar/Navbar";         // Public Navbar
+import UserNavbar from "./components/Navbar/UserNavbar"; // Logged-in Navbar
+
+// PAGE IMPORTS
 import LandingPage from "./pages/Landing/LandingPage";
 import Login from "./pages/Login/Login";
 import Signup from "./pages/Signup/Signup";
 import DataEntry from "./pages/AddData/DataEntry";
 import Analytics from "./pages/Analytics/Analytics";
+import DataSheet from "./pages/AddData/DataSheet";
+import UserDashboard from "./pages/Dashboard/Dashboard";
+import InventoryPage from "./pages/Inventory/Inventory";
 
 function App() {
   return (
     <Router>
-      {/* Navbar sits outside Routes so it shows on every page */}
-      <Navbar /> 
-      
       <Routes>
-        {/* Auth Routes */}
-        <Route path="/" element={<LandingPage />} />
+        {/* PUBLIC ROUTES (No Navbar or Landing Navbar) */}
+        <Route path="/" element={<><Navbar /><LandingPage /></>} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
 
-        {/* Dashboard/Feature Routes */}
-        <Route path="/data-entry" element={<DataEntry />} />
-        <Route path="/analytics" element={<Analytics />} />
+        {/* PRIVATE ROUTES (All use UserNavbar) */}
+        <Route path="/dashboard" element={<><UserNavbar /><UserDashboard /></>} />
+        <Route path="/data-entry" element={<><UserNavbar /><DataEntry /></>} />
+        <Route path="/analytics" element={<><UserNavbar /><Analytics /></>} />
+        <Route path="/datasheet" element={<><UserNavbar /><DataSheet /></>} />
+        
+        {/* Added the missing Inventory route here */}
+        <Route path="/inventory" element={<><UserNavbar /><InventoryPage /></>} />
       </Routes>
     </Router>
   );

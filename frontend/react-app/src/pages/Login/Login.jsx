@@ -5,7 +5,7 @@ import axios from "axios";
 import logoImg from "../../assets/images/logo.jpeg";
 
 const LoginPage = () => {
-  const [email, setEmail] = useState("");   // changed from username
+  const [email, setEmail] = useState(""); // changed from username
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
 
@@ -17,7 +17,7 @@ const LoginPage = () => {
 
     try {
       const res = await axios.post("http://localhost:5000/api/auth/login", {
-        email,        // send email instead of username
+        email, // send email instead of username
         password,
       });
 
