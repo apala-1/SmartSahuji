@@ -46,3 +46,26 @@ exports.login = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+// View all users (protected)
+exports.viewUsers = async (req, res) => {
+  try {
+    const users = await User.find().select('-password'); // remove password from output
+    res.json(users);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// Delete user (protected)
+exports.deleteUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = await User.findByIdAndDelete(id);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    res.json({ message: 'User deleted', userId: id });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
