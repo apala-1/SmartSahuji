@@ -1,0 +1,15 @@
+uvicorn
+pymongo
+pandas
+dotenv
+fastapi
+
+# cd sales-analytics-llm
+# uvicorn main:app --reload
+
+# Frontend
+# cd Frontend/react-app
+# npm start
+
+# Backend
+# node index.js
