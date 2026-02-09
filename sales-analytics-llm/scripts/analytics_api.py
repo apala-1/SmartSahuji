@@ -1,5 +1,3 @@
-# main.py
-
 import os
 import pandas as pd
 from pymongo import MongoClient
@@ -7,28 +5,16 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
-# ==============================
-# LOAD ENV
-# ==============================
 load_dotenv()
 
 MONGO_URI = os.getenv("MONGO_URI")
 DB_NAME = os.getenv("DB_NAME")
 COLLECTION_NAME = os.getenv("COLLECTION_NAME")
 
-if not MONGO_URI or not DB_NAME or not COLLECTION_NAME:
-    raise Exception("Missing environment variables in .env")
-
-# ==============================
-# DATABASE CONNECTION
-# ==============================
 client = MongoClient(MONGO_URI)
 db = client[DB_NAME]
 collection = db[COLLECTION_NAME]
 
-# ==============================
-# FASTAPI SETUP
-# ==============================
 app = FastAPI()
 
 app.add_middleware(
@@ -39,20 +25,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ==============================
-# DATA LOADER
-# ==============================
 def load_data():
     data = list(collection.find())
     df = pd.DataFrame(data)
 
-    # If collection empty, create safe dataframe
-    if df.empty:
-        return pd.DataFrame(
-            columns=["date","price","cost","quantity","category","product"]
-        )
-
-    # ---- Ensure required columns exist ----
+    # default columns
     if "date" not in df.columns:
         df["date"] = pd.to_datetime("today")
 
@@ -65,19 +42,11 @@ def load_data():
     if "quantity" not in df.columns:
         df["quantity"] = 1
 
-    if "category" not in df.columns:
-        df["category"] = "Unknown"
-
-    if "product" not in df.columns:
-        df["product"] = "Unknown"
-
-    # ---- Type conversions ----
     df["date"] = pd.to_datetime(df["date"], errors="coerce")
     df["price"] = pd.to_numeric(df["price"], errors="coerce").fillna(0)
     df["cost"] = pd.to_numeric(df["cost"], errors="coerce").fillna(0)
     df["quantity"] = pd.to_numeric(df["quantity"], errors="coerce").fillna(1)
 
-    # ---- Calculations ----
     df["revenue"] = df["price"] * df["quantity"]
     df["total_cost"] = df["cost"] * df["quantity"]
     df["profit"] = df["revenue"] - df["total_cost"]
@@ -85,9 +54,6 @@ def load_data():
     return df
 
 
-# ==============================
-# ANALYTICS ENDPOINT
-# ==============================
 @app.get("/analytics")
 def analytics(
     period: str = "weekly",
@@ -97,34 +63,15 @@ def analytics(
 ):
     df = load_data()
 
-    if df.empty:
-        return {
-            "summary": {
-                "total_revenue": 0,
-                "total_profit": 0,
-                "total_orders": 0,
-            },
-            "trend_series": [],
-            "category_stats": [],
-            "top_products": [],
-            "top_margin_products": [],
-        }
-
-    # ==============================
-    # FILTERS
-    # ==============================
+    # ====== FILTERS ======
     if start_date:
         df = df[df["date"] >= pd.to_datetime(start_date)]
-
     if end_date:
         df = df[df["date"] <= pd.to_datetime(end_date)]
-
     if category:
         df = df[df["category"] == category]
 
-    # ==============================
-    # PERIOD GROUPING
-    # ==============================
+    # ====== PERIOD ======
     if period == "weekly":
         df["period"] = df["date"].dt.strftime("%Y-%U")
     elif period == "monthly":
@@ -134,33 +81,27 @@ def analytics(
     else:
         raise HTTPException(status_code=400, detail="Invalid period")
 
-    # ==============================
-    # SUMMARY
-    # ==============================
+    # ====== SUMMARY ======
     summary = {
         "total_revenue": float(df["revenue"].sum()),
         "total_profit": float(df["profit"].sum()),
         "total_orders": int(df.shape[0]),
     }
 
-    # ==============================
-    # TREND SERIES
-    # ==============================
+    # ====== TREND CHART ======
     trend_series = (
         df.groupby("period")[["revenue", "profit"]]
-        .sum()
-        .reset_index()
-        .sort_values("period")
-        .to_dict(orient="records")
+          .sum()
+          .reset_index()
+          .sort_values("period")
+          .to_dict(orient="records")
     )
 
-    # ==============================
-    # CATEGORY STATS
-    # ==============================
+    # ====== CATEGORY STATS ======
     category_stats = (
         df.groupby("category")[["revenue", "profit"]]
-        .sum()
-        .reset_index()
+          .sum()
+          .reset_index()
     )
 
     category_stats["loss"] = category_stats.apply(
@@ -173,30 +114,22 @@ def analytics(
         axis=1
     )
 
-    category_stats = (
-        category_stats.sort_values("revenue", ascending=False)
-        .to_dict(orient="records")
-    )
+    category_stats = category_stats.sort_values("revenue", ascending=False).to_dict(orient="records")
 
-    # ==============================
-    # TOP PRODUCTS BY PROFIT
-    # ==============================
+    # ====== TOP PRODUCTS ======
     top_products = (
         df.groupby("product")[["revenue", "profit"]]
-        .sum()
-        .reset_index()
-        .sort_values("profit", ascending=False)
-        .head(5)
-        .to_dict(orient="records")
+          .sum()
+          .reset_index()
+          .sort_values("profit", ascending=False)
+          .head(5)
+          .to_dict(orient="records")
     )
 
-    # ==============================
-    # TOP PRODUCTS BY MARGIN
-    # ==============================
     top_margin_products = (
         df.groupby("product")[["revenue", "profit"]]
-        .sum()
-        .reset_index()
+          .sum()
+          .reset_index()
     )
 
     top_margin_products["profit_margin"] = top_margin_products.apply(
@@ -204,16 +137,12 @@ def analytics(
         axis=1
     )
 
-    top_margin_products = (
-        top_margin_products.sort_values("profit_margin", ascending=False)
-        .head(5)
-        .to_dict(orient="records")
-    )
+    top_margin_products = top_margin_products.sort_values("profit_margin", ascending=False).head(5).to_dict(orient="records")
 
     return {
         "summary": summary,
         "trend_series": trend_series,
         "category_stats": category_stats,
         "top_products": top_products,
-        "top_margin_products": top_margin_products,
+        "top_margin_products": top_margin_products
     }
