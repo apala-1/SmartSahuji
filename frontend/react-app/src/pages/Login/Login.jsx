@@ -5,7 +5,7 @@ import axios from "axios";
 import logoImg from "../../assets/images/logo.jpeg";
 
 const LoginPage = () => {
-  const [email, setEmail] = useState(""); // changed from username
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
 
@@ -17,20 +17,20 @@ const LoginPage = () => {
 
     try {
       const res = await axios.post("http://localhost:5000/api/auth/login", {
-        email, // send email instead of username
+        email,
         password,
       });
 
-      // Save token for protected routes
       localStorage.setItem("token", res.data.token);
-
       alert("Login successful!");
-      navigate("/dashboard"); // redirect to dashboard
+      navigate("/dashboard");
     } catch (err) {
       console.error(err);
       alert(err.response?.data?.error || "Login failed");
     }
   };
+
+  // ... imports stay same
 
   return (
     <div className="auth-container">
@@ -39,46 +39,49 @@ const LoginPage = () => {
         <div className="logo-circle">
           <img src={logoImg} alt="SahuJi" />
         </div>
-        <h1 className="brand-name">
-          <span className="smart">smart</span>{" "}
-          <span className="sahuji">SahuJi</span>
-        </h1>
       </div>
 
-      <div className="form-side">
+      <div className="form-side" style={{ backgroundColor: "#555" }}>
+        {" "}
+        {/* Dark grey used here for contrast since orange is removed */}
         <div className="form-box">
-          <h2 className="form-title">Login</h2>
-          <div className="input-group">
-            <label>Email :</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
+          <div className="form-container-inner">
+            <div className="input-group">
+              <label>Username :</label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </div>
+
+            <div className="input-group">
+              <label>Password :</label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </div>
+
+            <div className="form-footer">
+              <Link to="/forgot-password" hidden className="forget-pass">
+                Forgot Password?
+              </Link>
+            </div>
+
+            <div className="button-row">
+              <button
+                className="new-user-btn"
+                onClick={() => navigate("/signup")}
+              >
+                New User?
+              </button>
+              <button className="login-btn" onClick={handleLogin}>
+                Login
+              </button>
+            </div>
           </div>
-          <div className="input-group">
-            <label>Password :</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-          </div>
-          <div className="form-footer">
-            <Link to="/signup">
-              <button className="new-user-btn">NEW USER?</button>
-            </Link>
-            <Link
-              to="/forgot-password"
-              title="Forgot Password"
-              className="forget-pass"
-            >
-              FORGET PASSWORD?
-            </Link>
-          </div>
-          <button className="submit-btn" onClick={handleLogin}>
-            LOGIN
-          </button>
         </div>
       </div>
     </div>
