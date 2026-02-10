@@ -8,6 +8,7 @@ const productRoutes = require("./routes/productRoutes");
 const salesRoutes = require("./routes/salesRoutes");
 const uploadRoutes = require("./routes/uploadRoutes");
 const insightsRoutes = require("./routes/insightsRoutes");
+const inventoryRoutes = require("./routes/inventoryRoutes");
 
 const app = express();
 
@@ -39,10 +40,11 @@ app.use("/api/product", productRoutes);
 app.use("/api/sales", salesRoutes);
 app.use("/api/upload", uploadRoutes);
 app.use("/api/insights", insightsRoutes);
+app.use("/api/inventory", inventoryRoutes);
 
 // 2. USE PORT FROM ENV: Fallback to 5000 if not defined
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
-  console.log(`🚀 Backend running on port ${PORT}`);
+  console.log(` Backend running on port ${PORT}`);
 });

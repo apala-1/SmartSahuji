@@ -1,40 +1,54 @@
-const Product = require("../models/productModel");
+const Inventory = require("../models/InventoryModel"); // Assuming Product model is used as Inventory
 const xlsx = require("xlsx");
 const fs = require("fs");
-const { default: InventoryPage } = require("../../frontend/react-app/src/pages/Inventory/Inventory");
 
+// =============================
+// ADD OR UPDATE INVENTORY
+// =============================
+exports.addInventory = async (req, res) => {
+  try {
+    const {
+      name,
+      company,
+      buyingPrice,
+      sellingPrice,
+      quantityBought,
+      currentStock,
+      itemType,
+      dateBought,
+      status,
+      lastBoughtQty,
+      supplierName,
+      supplierContact,
+      sku,
+      minStock,
+      reorderQty,
+      description,
+    } = req.body;
 
-//  Add single product
-exports.addInventry = async (req, res) => {
-    try{
-        const {
+    // Check if product already exists
+    let existingInventory = await Inventory.findOne({ name, company, sku });
 
-         name, company, buyingPrice, sellingPrice, quantityBought,
-      currentStock, itemType, dateBought, status, lastBoughtQty,
-      supplierName, supplierContact, sku, minStock, reorderQty, description
+    if (existingInventory) {
+      // Update stock if product exists
+      existingInventory.quantityBought += quantityBought;
+      existingInventory.currentStock += quantityBought;
+      existingInventory.lastBoughtQty = quantityBought;
+      existingInventory.buyingPrice = buyingPrice || existingInventory.buyingPrice;
+      existingInventory.sellingPrice = sellingPrice || existingInventory.sellingPrice;
+      existingInventory.dateBought = dateBought || existingInventory.dateBought;
+      existingInventory.status = status || existingInventory.status;
+      existingInventory.supplierName = supplierName || existingInventory.supplierName;
+      existingInventory.supplierContact = supplierContact || existingInventory.supplierContact;
+      existingInventory.minStock = minStock || existingInventory.minStock;
+      existingInventory.reorderQty = reorderQty || existingInventory.reorderQty;
+      existingInventory.description = description || existingInventory.description;
 
-        } = req.body;
-//  Check if product already exists
-        const existingInventory = await Inventory.findOne({name, company, sku});
-        if(existingInventory){
-            //  update Stock if product exists
-            existingInventory.quantityBought += quantityBought;
-            existingInventory.currentStock += quantityBought;
-            existingInventory.lastBoughtQty = quantityBought;
-            existingInventory.buyingPrice = buyingPrice || existingInventory.buyingPrice; // Update buying price
-            existingInventory.sellingPrice = sellingPrice || existingInventory.sellingPrice; // Update selling price
-            existingInventory.dateBought = dateBought || existingInventory.dateBought;
-            existingInventory.status = status || existingInventory.status;
-            //  optional fields
-            existingInventory.supplierName = supplierName || existingInventory.supplierName;
-            existingInventory.supplierContact = supplierContact || existingInventory.supplierContact;
-            existingInventory.minStock = minStock || existingInventory.minStock;
-            existingInventory.reorderQty = reorderQty || existingInventory.reorderQty;
-            existingInventory.description = description || existingInventory.description;
-            await existingInventory.save();
-            return res.json({message: "Stock updated successfully", inventory: existingInventory});
-    } 
-    //  Create new product if it doesn't exist
+      await existingInventory.save();
+      return res.json({ message: "Stock updated successfully", inventory: existingInventory });
+    }
+
+    // Create new inventory if it doesn't exist
     const newInventory = new Inventory({
       name,
       company,
@@ -53,19 +67,18 @@ exports.addInventry = async (req, res) => {
       reorderQty,
       description,
     });
-    await newInventory.save();
-    res.json({message: "Stock Added Sucessfully", inventory: newInventry});
 
-} catch (err){
+    await newInventory.save();
+    res.json({ message: "Stock added successfully", inventory: newInventory });
+  } catch (err) {
     console.error(err);
-    res.status(500).json({error: " Failed to add stock"});
-}
+    res.status(500).json({ error: "Failed to add stock" });
+  }
 };
 
-//  get all intevry item s
-
-//  get all inventry 
-// Get all inventory
+// =============================
+// GET ALL INVENTORY
+// =============================
 exports.getAllInventory = async (req, res) => {
   try {
     const inventory = await Inventory.find().sort({ dateBought: -1 });
@@ -76,57 +89,58 @@ exports.getAllInventory = async (req, res) => {
   }
 };
 
-//  get single inventry item by id 
-
+// =============================
+// GET INVENTORY BY ID
+// =============================
 exports.getInventoryById = async (req, res) => {
-    try{
-        const { id } = req.params;
-        const item = await Inventory.findById(id);
-        if(!item) return res.status(404).json({error: "Item Not Found"});
-        res.json({ item });
-
-    } catch (err){
-        console.error(err);
-        res.status(500).json({error: "Failed to fetch item"});
-    }
+  try {
+    const { id } = req.params;
+    const item = await Inventory.findById(id);
+    if (!item) return res.status(404).json({ error: "Item not found" });
+    res.json({ item });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to fetch item" });
+  }
 };
 
-//  update inventory by Id 
+// =============================
+// UPDATE INVENTORY BY ID
+// =============================
+exports.updateInventory = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updates = req.body;
 
-exports.updateInventory = async (res, req) => {
-    try{
-        const { id } = req.params;
-        const updates = req.body;
+    const item = await Inventory.findByIdAndUpdate(id, updates, { new: true });
+    if (!item) return res.status(404).json({ error: "Item not found" });
 
-        const item = await Inventory.findByIdAndUpdate(id, updates, {new: true});
-        if(!item) return res.status(404).json({error: "Item not found"});
-        res.json ({message: "Item updated successfully", item});
-
-    } catch (err){
-        console.error(err);
-            res.status(500).json({error : "Failed tp update stock"});
-        }
-    
+    res.json({ message: "Item updated successfully", item });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to update inventory" });
+  }
 };
 
+// =============================
+// DELETE INVENTORY BY ID
+// =============================
+exports.deleteInventory = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const item = await Inventory.findByIdAndDelete(id);
+    if (!item) return res.status(404).json({ error: "Item not found" });
 
-//  delete sTOCK 
-
-exports.deleteInventory = async (req, res) =>{
-    try{
-        cost (id) =  req.params;
-        const item = await Inventory.findByIdAndDelete(id);
-        if(!item) return res.status(404).json({error: "Item not found"});
-
-        res.json({message: "Stock Deleted successfully"});
-
-    } catch(err){
-        console.error(err);
-        res.status(500).json({error: " Failed to delete inventory"});
-    }
+    res.json({ message: "Stock deleted successfully" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to delete inventory" });
+  }
 };
 
-// Search inventory by name, category, or company
+// =============================
+// SEARCH INVENTORY
+// =============================
 exports.searchInventory = async (req, res) => {
   try {
     const { query } = req.query;
@@ -137,6 +151,7 @@ exports.searchInventory = async (req, res) => {
         { itemType: { $regex: query, $options: "i" } },
       ],
     }).sort({ dateBought: -1 });
+
     res.json({ items });
   } catch (err) {
     console.error(err);
