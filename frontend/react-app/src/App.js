@@ -18,6 +18,7 @@ import SalesHistory from "./pages/ShowData/SalesHistory";
 import ForgotPassword from "./pages/ForgotPassword/ForgotPassword";
 import ResetPassword from "./pages/ForgotPassword/ResetPassword";
 import Insights from "./components/Insights";
+import ProfilePage from "./pages/Profile/ProfilePage";
 
 
 function App() {
@@ -34,6 +35,7 @@ function App() {
         <Route path="/data-entry" element={<><UserNavbar /><DataEntry /></>} />
         <Route path="/analytics" element={<><UserNavbar /><Analytics /></>} />
         <Route path="/datasheet" element={<><UserNavbar /><DataSheet /></>} />
+        <Route path="/profile" element={<><ProfilePage></ProfilePage></>}/>
         
         {/* Added the missing Inventory route here */}
         <Route path="/inventory" element={<><UserNavbar /><InventoryPage /></>} />

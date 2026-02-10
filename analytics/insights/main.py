@@ -7,6 +7,7 @@ from pymongo import MongoClient
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from statsmodels.tsa.holtwinters import ExponentialSmoothing
 print("🔥 RUNNING INSIGHTS MAIN.PY 🔥")
 # ==============================
 # LOAD ENV
@@ -240,4 +241,111 @@ def insights(
         "items": items,
         "revenue_trends": revenue_trends,
         "insight_metadata": insight_metadata
+    }
+
+# ==============================
+# FORECASTING ENDPOINT
+# ==============================
+
+@app.get("/forecast")
+def forecast_sales(
+    period_days: int = 7,
+    category: str = None,
+    item_type: str = None,
+    spike_threshold: float = 1.5  # Multiplier for rolling avg + std
+):
+    """
+    Forecast sales and revenue for the next `period_days`.
+    Detect demand spikes in historical and forecasted data.
+    """
+
+    df = load_data()
+
+    if df.empty:
+        return {
+            "forecast": {},
+            "revenue_forecast": {},
+            "historical_spikes": {},
+            "forecast_spikes": {},
+            "message": "No sales data available"
+        }
+
+    # ------------------------------
+    # FILTER DATA
+    # ------------------------------
+    if category:
+        df = df[df["category"] == category]
+    if item_type:
+        df = df[df["item_type"] == item_type]
+
+    # ------------------------------
+    # AGGREGATE DAILY SALES
+    # ------------------------------
+    daily_sales = df.groupby("date")["quantity"].sum().sort_index()
+
+    if len(daily_sales) < 7:
+        return {
+            "forecast": {},
+            "revenue_forecast": {},
+            "historical_spikes": {},
+            "forecast_spikes": {},
+            "message": "Not enough historical data for forecasting"
+        }
+
+    # ------------------------------
+    # FORECAST USING HOLT-WINTERS
+    # ------------------------------
+    try:
+        model = ExponentialSmoothing(
+            daily_sales,
+            trend="add",
+            seasonal="add",
+            seasonal_periods=7
+        )
+        model_fit = model.fit()
+        forecast_values = model_fit.forecast(period_days)
+    except Exception as e:
+        return {"error": f"Forecasting failed: {str(e)}"}
+
+    # ------------------------------
+    # REVENUE PROJECTION
+    # ------------------------------
+    avg_price = df["price"].mean()
+    revenue_forecast = forecast_values * avg_price
+
+    # ------------------------------
+    # HISTORICAL DEMAND SPIKES
+    # ------------------------------
+    rolling_avg = daily_sales.rolling(7).mean()
+    rolling_std = daily_sales.rolling(7).std()
+    historical_spikes = daily_sales > (rolling_avg + spike_threshold * rolling_std)
+    historical_spikes_dict = {
+        str(k.date()): bool(v) for k, v in historical_spikes.items() if not pd.isna(v)
+    }
+
+    # ------------------------------
+    # FORECAST DEMAND SPIKES
+    # ------------------------------
+    mean_hist = daily_sales.mean()
+    std_hist = daily_sales.std()
+    forecast_spikes = forecast_values > (mean_hist + spike_threshold * std_hist)
+    forecast_spikes_dict = {str(k.date()): bool(v) for k, v in forecast_spikes.items()}
+
+    # ------------------------------
+    # FORMAT OUTPUT
+    # ------------------------------
+    forecast_dict = {str(k.date()): float(v) for k, v in forecast_values.items()}
+    revenue_dict = {str(k.date()): float(v) for k, v in revenue_forecast.items()}
+
+    return {
+        "forecast": forecast_dict,
+        "revenue_forecast": revenue_dict,
+        "historical_spikes": historical_spikes_dict,
+        "forecast_spikes": forecast_spikes_dict,
+        "metadata": {
+            "avg_price": avg_price,
+            "period_days": period_days,
+            "historical_days_used": len(daily_sales),
+            "spike_threshold_multiplier": spike_threshold
+        }
     }

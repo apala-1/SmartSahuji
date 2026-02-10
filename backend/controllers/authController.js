@@ -128,3 +128,42 @@ exports.deleteUser = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+// Get logged-in user's profile
+exports.getProfile = async (req, res) => {
+  try {
+    res.json(req.user);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// Update profile
+exports.updateProfile = async (req, res) => {
+  try {
+    const { username, email, password } = req.body;
+
+    if (username) req.user.username = username;
+    if (email) req.user.email = email;
+    if (password) {
+      const hashed = await bcrypt.hash(password, 10);
+      req.user.password = hashed;
+    }
+
+    await req.user.save();
+
+    res.json({ message: "Profile updated successfully", user: req.user });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// Delete profile
+exports.deleteProfile = async (req, res) => {
+  try {
+    await req.user.deleteOne();
+    res.json({ message: "Profile deleted successfully" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};

@@ -37,7 +37,9 @@ function UserNavbar() {
         </Link>
 
         <div className="user-profile-section">
-          <div className="user-avatar-circle">S</div>
+          <div className="user-avatar-circle">
+            <Link to='/profile'>S</Link>
+          </div>
           <Link
             to="/login"
             className="user-logout-btn"
