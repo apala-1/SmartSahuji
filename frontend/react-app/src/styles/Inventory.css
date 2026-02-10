@@ -1,0 +1,207 @@
+.inventory-page {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 20px;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #f6f8fa;
+}
+
+h2 {
+  text-align: center;
+  margin-bottom: 20px;
+  color: #333;
+}
+
+.inventory-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.inventory-actions button {
+  padding: 8px 15px;
+  border: none;
+  background-color: #4caf50;
+  color: white;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.search-bar {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.search-bar input {
+  flex: 1;
+  padding: 8px 10px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+}
+
+.search-bar button {
+  padding: 8px 15px;
+  border: none;
+  background-color: #4caf50;
+  color: white;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.inventory-form {
+  border: 1px solid #ddd;
+  padding: 20px;
+  margin-bottom: 30px;
+  border-radius: 10px;
+  background-color: white;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.inventory-form h3 {
+  margin-bottom: 15px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+}
+
+.form-grid input,
+.form-grid select {
+  padding: 8px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+}
+
+.inventory-form button {
+  margin-top: 15px;
+  padding: 10px 20px;
+  border: none;
+  background-color: #2196f3;
+  color: white;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.table-container {
+  max-height: 500px;
+  overflow-y: auto;
+  border-radius: 8px;
+  background-color: white;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.inventory-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.inventory-table th,
+.inventory-table td {
+  padding: 10px;
+  border: 1px solid #eee;
+  text-align: left;
+}
+
+.sticky-header th {
+  position: sticky;
+  top: 0;
+  background-color: #fafafa;
+  z-index: 2;
+}
+
+.low-stock {
+  background-color: #ffe0e0;
+}
+
+.inventory-table button {
+  margin-right: 5px;
+  padding: 5px 10px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.inventory-table button:first-child {
+  background-color: #ff9800;
+  color: white;
+}
+
+.inventory-table button:last-child {
+  background-color: #f44336;
+  color: white;
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 10px 0;
+  gap: 10px;
+}
+
+.pagination button {
+  padding: 5px 10px;
+  border-radius: 5px;
+  border: none;
+  background-color: #2196f3;
+  color: white;
+  cursor: pointer;
+}
+
+.pagination button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+/* Bulk preview */
+.bulk-preview {
+  border: 1px solid #ddd;
+  padding: 15px;
+  margin-bottom: 20px;
+  background-color: #fff;
+  border-radius: 8px;
+}
+
+.bulk-preview h4 {
+  margin-bottom: 10px;
+}
+
+.preview-table-container {
+  max-height: 300px;
+  overflow-y: auto;
+  margin-bottom: 10px;
+}
+
+.preview-table-container table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.preview-table-container th,
+.preview-table-container td {
+  border: 1px solid #eee;
+  padding: 8px;
+  text-align: left;
+}
+
+.bulk-preview button {
+  padding: 6px 12px;
+  margin-right: 5px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.bulk-preview button:first-child {
+  background-color: #4caf50;
+  color: white;
+}
+
+.bulk-preview button:last-child {
+  background-color: #f44336;
+  color: white;
+}
