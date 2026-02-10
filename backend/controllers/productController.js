@@ -6,15 +6,15 @@ const fs = require("fs");
 // Add a new product (protected)
 exports.addProduct = async (req, res) => {
   try {
-    const { product, category, type, price, cost, date, quantity } = req.body;
+    const { product, category, item_type, price, cost, date, quantity } = req.body;
 
-    if (!product || !category || !type || !price || !cost || !date || !quantity)
+    if (!product || !category || !item_type || !price || !cost || !date || !quantity)
       return res.status(400).json({ error: "All fields are required" });
 
     const newProduct = new Product({
       product,
       category,
-      type,
+      item_type,
       price,
       cost,
       quantity,            // ✅ added quantity
@@ -55,11 +55,11 @@ exports.deleteProduct = async (req, res) => {
 exports.updateProduct = async (req, res) => {
   try {
     const { id } = req.params;
-    const { product, category, type, price, cost, date, quantity } = req.body;
+    const { product, category, item_type, price, cost, date, quantity } = req.body;
 
     const updated = await Product.findOneAndUpdate(
       { _id: id, user: req.user.id },
-      { product, category, type, price, cost, date, quantity }, // ✅ added quantity
+      { product, category, item_type, price, cost, date, quantity }, // ✅ added quantity
       { new: true }
     );
 
@@ -80,7 +80,7 @@ exports.uploadFile = async (req, res) => {
     let products = [];
 
     // CSV
-    if (req.file.mimetype === "text/csv") {
+    if (req.file.mimeitem_type === "text/csv") {
       const fileContent = fs.readFileSync(filePath);
       csv.parse(fileContent, { columns: true, trim: true }, (err, rows) => {
         if (err) return res.status(400).json({ error: "CSV parse error" });
@@ -89,7 +89,7 @@ exports.uploadFile = async (req, res) => {
           products.push({
             product: row.product,
             category: row.category,
-            type: row.type,
+            item_type: row.item_type,
             price: Number(row.price),
             cost: Number(row.cost),
             quantity: Number(row.quantity),   // ✅ added quantity
@@ -105,8 +105,8 @@ exports.uploadFile = async (req, res) => {
     } 
     // XLSX
     else if (
-      req.file.mimetype === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
-      req.file.mimetype === "application/vnd.ms-excel"
+      req.file.mimeitem_type === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
+      req.file.mimeitem_type === "application/vnd.ms-excel"
     ) {
       const workbook = XLSX.readFile(filePath);
       const sheetName = workbook.SheetNames[0];
@@ -115,7 +115,7 @@ exports.uploadFile = async (req, res) => {
         products.push({
           product: row.product,
           category: row.category,
-          type: row.type,
+          item_type: row.item_type,
           price: Number(row.price),
           cost: Number(row.cost),
           quantity: Number(row.quantity),   // ✅ added quantity
@@ -127,7 +127,7 @@ exports.uploadFile = async (req, res) => {
       await Product.insertMany(products);
       res.json({ message: "Products uploaded successfully" });
     } else {
-      return res.status(400).json({ error: "Unsupported file type" });
+      return res.status(400).json({ error: "Unsupported file item_type" });
     }
   } catch (err) {
     console.error(err);

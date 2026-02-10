@@ -79,9 +79,9 @@ export default function SalesHistory() {
             <tr>
               <th>Product</th>
               <th>Category</th>
-              <th>Type</th>
-              <th>Amount (Rs)</th>
-              <th>Cost (Rs)</th>
+              <th>Item Type</th>
+              <th>Selling (Rs)</th>
+              <th>Buying (Rs)</th>
               <th>Quantity</th>
               <th>Date</th>
             </tr>
@@ -92,7 +92,7 @@ export default function SalesHistory() {
               <tr key={s._id}>
                 <td>{s.product}</td>
                 <td>{s.category}</td>
-                <td>{s.type}</td>
+                <td>{s.item_type}</td>
                 <td>{s.price}</td>
                 <td>{s.cost}</td>
                 <td>{s.quantity}</td>

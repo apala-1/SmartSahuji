@@ -13,3 +13,7 @@ fastapi
 
 # Backend
 # node index.js
+
+# Insights
+# cd analytics/insights
+# uvicorn main:app --reload --port 9000
