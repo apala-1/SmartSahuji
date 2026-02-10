@@ -1,29 +1,25 @@
 // routes/inventoryRoutes.js
-
 const express = require("express");
 const router = express.Router();
-const inventoryController = require("../controllers/inventryController");
+const inventoryController = require("../controllers/inventoryController");
+const multer = require("multer");
 
-// ==============================
-// CRUD Routes for Inventory
-// ==============================
 
-// 1️⃣ Add new inventory or update stock if exists
+const upload = multer({ dest: "uploads/" });
+
+// Search first
+router.get("/search", inventoryController.searchInventory);
+
+// CRUD Routes
 router.post("/", inventoryController.addInventory);
-
-// 2️⃣ Get all inventory items
 router.get("/", inventoryController.getAllInventory);
-
-// 3️⃣ Get single inventory item by ID
 router.get("/:id", inventoryController.getInventoryById);
-
-// 4️⃣ Update inventory item by ID
 router.put("/:id", inventoryController.updateInventory);
-
-// 5️⃣ Delete inventory item by ID
 router.delete("/:id", inventoryController.deleteInventory);
 
-// 6️⃣ Optional: Search inventory by name, company, or category
-router.get("/search/query", inventoryController.searchInventory);
+
+//New Routes
+router.get("/export/excel", inventoryController.exportInventory);
+router.post("/upload/excel", upload.single("file"), inventoryController.bulkUploadInventory);
 
 module.exports = router;
