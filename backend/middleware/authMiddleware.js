@@ -1,6 +1,7 @@
 const jwt = require("jsonwebtoken");
+const User = require("../models/User");
 
-function auth(req, res, next) {
+async function auth(req, res, next) {
   const authHeader = req.header("Authorization");
   let token = null;
 
@@ -13,15 +14,17 @@ function auth(req, res, next) {
   }
 
   try {
+    // Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    // ✅ Normalize user object
-    req.user = {
-      id: decoded.id || decoded._id || decoded.userId,
-    };
+    // Fetch user from DB to attach full object
+    const user = await User.findById(decoded.id).select("-password"); // Exclude password
+    if (!user) return res.status(401).json({ error: "User not found" });
 
+    req.user = user; // Now controllers have full user object including role
     next();
   } catch (err) {
+    console.error(err);
     res.status(401).json({ error: "Token is not valid" });
   }
 }

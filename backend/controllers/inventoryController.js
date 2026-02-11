@@ -59,68 +59,78 @@ exports.bulkUploadInventory = async (req, res) => {
     const rows = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
 
     for (const row of rows) {
-      const {
-        Name,
-        Company,
-        BuyingPrice,
-        SellingPrice,
-        QuantityBought,
-        CurrentStock,
-        Category,
-        DateBought,
-        SKU,
-        MinStock,
-        ReorderQty,
-        Description,
-        Status,
-      } = row;
+      try {
+        const {
+          Name,
+          Company,
+          SKU,
+          QuantityBought = 0,
+          BuyingPrice,
+          SellingPrice,
+          CurrentStock,
+          Category,
+          DateBought,
+          MinStock,
+          ReorderQty,
+          Description,
+          Status,
+        } = row;
 
-      const existingInventory = await Inventory.findOne({
-        user: req.user.id,
-        name: Name,
-        company: Company,
-        sku: SKU,
-      });
+        if (!Name || !Company || !SKU) continue; // skip invalid row
 
-      const qty = Number(QuantityBought) || 0;
+        const name = Name.trim();
+        const company = Company.trim();
+        const sku = SKU.trim().toUpperCase();
+        const qty = Number(QuantityBought) || 0;
 
-      if (existingInventory) {
-        existingInventory.quantityBought += qty;
-        existingInventory.currentStock += qty;
-        existingInventory.lastBoughtQty = qty;
-        existingInventory.buyingPrice =
-          Number(BuyingPrice) || existingInventory.buyingPrice;
-        existingInventory.sellingPrice =
-          Number(SellingPrice) || existingInventory.sellingPrice;
-        existingInventory.dateBought = DateBought
-          ? new Date(DateBought)
-          : existingInventory.dateBought;
-        existingInventory.status = Status || existingInventory.status;
-        existingInventory.minStock =
-          Number(MinStock) || existingInventory.minStock;
-        existingInventory.reorderQty =
-          Number(ReorderQty) || existingInventory.reorderQty;
-        existingInventory.description = Description || existingInventory.description;
-
-        await existingInventory.save();
-      } else {
-        await Inventory.create({
+        let existingInventory = await Inventory.findOne({
           user: req.user.id,
-          name: Name,
-          company: Company,
-          buyingPrice: Number(BuyingPrice) || 0,
-          sellingPrice: Number(SellingPrice) || 0,
-          quantityBought: qty,
-          currentStock: Number(CurrentStock) || qty,
-          lastBoughtQty: qty,
-          itemType: Category,
-          dateBought: DateBought ? new Date(DateBought) : Date.now(),
-          status: Status || "Active",
-          sku: SKU,
-          minStock: Number(MinStock) || 0,
-          reorderQty: Number(ReorderQty) || 0,
-          description: Description,
+          name,
+          company,
+          sku,
         });
+
+        if (existingInventory) {
+          existingInventory.quantityBought += qty;
+          existingInventory.currentStock += qty;
+          existingInventory.lastBoughtQty = qty;
+          existingInventory.buyingPrice =
+            Number(BuyingPrice) || existingInventory.buyingPrice;
+          existingInventory.sellingPrice =
+            Number(SellingPrice) || existingInventory.sellingPrice;
+          existingInventory.dateBought = DateBought
+            ? new Date(DateBought)
+            : existingInventory.dateBought;
+          existingInventory.status = Status || existingInventory.status;
+          existingInventory.minStock =
+            Number(MinStock) || existingInventory.minStock;
+          existingInventory.reorderQty =
+            Number(ReorderQty) || existingInventory.reorderQty;
+          existingInventory.description =
+            Description || existingInventory.description;
+
+          await existingInventory.save();
+        } else {
+          await Inventory.create({
+            user: req.user.id,
+            name,
+            company,
+            sku,
+            quantityBought: qty,
+            currentStock: Number(CurrentStock) || qty,
+            lastBoughtQty: qty,
+            buyingPrice: Number(BuyingPrice) || 0,
+            sellingPrice: Number(SellingPrice) || 0,
+            itemType: Category || "General",
+            dateBought: DateBought ? new Date(DateBought) : Date.now(),
+            status: Status || "Active",
+            minStock: Number(MinStock) || 0,
+            reorderQty: Number(ReorderQty) || 0,
+            description: Description || "",
+          });
+        }
+      } catch (errRow) {
+        console.error("Skipping row due to error:", row, errRow.message);
       }
     }
 
@@ -155,44 +165,58 @@ exports.addInventory = async (req, res) => {
       description,
     } = req.body;
 
+    const nName = name.trim();
+    const nCompany = company.trim();
+    const nSKU = sku.trim().toUpperCase();
     const qty = Number(quantityBought) || 0;
 
     let existingInventory = await Inventory.findOne({
       user: req.user.id,
-      name,
-      company,
-      sku,
+      name: nName,
+      company: nCompany,
+      sku: nSKU,
     });
 
     if (existingInventory) {
       existingInventory.quantityBought += qty;
       existingInventory.currentStock += qty;
       existingInventory.lastBoughtQty = qty;
-      existingInventory.buyingPrice = Number(buyingPrice) || existingInventory.buyingPrice;
-      existingInventory.sellingPrice = Number(sellingPrice) || existingInventory.sellingPrice;
-      existingInventory.dateBought = dateBought ? new Date(dateBought) : existingInventory.dateBought;
+      existingInventory.buyingPrice =
+        Number(buyingPrice) || existingInventory.buyingPrice;
+      existingInventory.sellingPrice =
+        Number(sellingPrice) || existingInventory.sellingPrice;
+      existingInventory.dateBought = dateBought
+        ? new Date(dateBought)
+        : existingInventory.dateBought;
       existingInventory.status = status || existingInventory.status;
-      existingInventory.supplierName = supplierName || existingInventory.supplierName;
-      existingInventory.supplierContact = supplierContact || existingInventory.supplierContact;
+      existingInventory.supplierName =
+        supplierName || existingInventory.supplierName;
+      existingInventory.supplierContact =
+        supplierContact || existingInventory.supplierContact;
       existingInventory.minStock = Number(minStock) || existingInventory.minStock;
-      existingInventory.reorderQty = Number(reorderQty) || existingInventory.reorderQty;
-      existingInventory.description = description || existingInventory.description;
+      existingInventory.reorderQty =
+        Number(reorderQty) || existingInventory.reorderQty;
+      existingInventory.description =
+        description || existingInventory.description;
 
       await existingInventory.save();
-      return res.json({ message: "Stock updated successfully", inventory: existingInventory });
+      return res.json({
+        message: "Stock updated successfully",
+        inventory: existingInventory,
+      });
     }
 
     const newInventory = await Inventory.create({
       user: req.user.id,
-      name,
-      company,
-      sku,
+      name: nName,
+      company: nCompany,
+      sku: nSKU,
       quantityBought: qty,
       currentStock: Number(currentStock) || qty,
       lastBoughtQty: qty,
       buyingPrice: Number(buyingPrice) || 0,
       sellingPrice: Number(sellingPrice) || 0,
-      itemType,
+      itemType: itemType || "General",
       dateBought: dateBought ? new Date(dateBought) : Date.now(),
       status: status || "Active",
       supplierName,

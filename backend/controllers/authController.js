@@ -1,54 +1,65 @@
-const User = require('../models/User');
-const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
-const crypto = require("crypto"); // for temporary token
-const nodemailer = require("nodemailer"); // for sending email
+const User = require("../models/User");
+const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
+const crypto = require("crypto"); // For reset tokens
 
-// Register user
+// =============================
+// REGISTER USER
+// =============================
 exports.register = async (req, res) => {
   try {
-    const { username, email, password } = req.body;
+    const { username, email, password, role } = req.body;
 
-    // Check if user exists
-    const exists = await User.findOne({ email });
-    if (exists) return res.status(400).json({ error: 'Email already in use' });
+    // Check if email or username already exists
+    const exists = await User.findOne({ $or: [{ email }, { username }] });
+    if (exists) return res.status(400).json({ error: "Email or username already in use" });
 
     // Hash password
     const hashed = await bcrypt.hash(password, 10);
 
     // Save user
-    const user = new User({ username, email, password: hashed });
+    const user = new User({ username, email, password: hashed, role: role || "user" });
     await user.save();
 
-    res.status(201).json({ message: 'User registered successfully' });
+    res.status(201).json({ message: "User registered successfully", userId: user._id });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-// Login user
+// =============================
+// LOGIN USER
+// =============================
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
     const user = await User.findOne({ email });
-    if (!user) return res.status(400).json({ error: 'User not found' });
+    if (!user) return res.status(400).json({ error: "User not found" });
 
     const valid = await bcrypt.compare(password, user.password);
-    if (!valid) return res.status(400).json({ error: 'Invalid password' });
+    if (!valid) return res.status(400).json({ error: "Invalid password" });
 
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    // Generate JWT token
+    const token = jwt.sign(
+      { id: user._id, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: "1h" }
+    );
 
     // Update lastLogin and store session token
     user.lastLogin = new Date();
     user.sessions.push({ token });
     await user.save();
 
-    res.json({ token, username: user.username, email: user.email });
+    res.json({ token, username: user.username, email: user.email, role: user.role });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
+// =============================
+// FORGOT PASSWORD
+// =============================
 exports.forgotPassword = async (req, res) => {
   const { email } = req.body;
   if (!email) return res.status(400).json({ error: "Email is required" });
@@ -62,20 +73,18 @@ exports.forgotPassword = async (req, res) => {
     user.resetPasswordExpires = Date.now() + 15 * 60 * 1000; // 15 mins
     await user.save();
 
-    console.log(
-      `Reset password link: http://localhost:3000/reset-password/${resetToken}`
-    );
+    // In production, send this link via email
+    console.log(`Reset password link: http://localhost:3000/reset-password/${resetToken}`);
 
-    res.json({
-      message:
-        "Password reset link generated! Check your email (console for demo).",
-    });
+    res.json({ message: "Password reset link generated! Check your email (console for demo)." });
   } catch (err) {
-    console.error(err);
     res.status(500).json({ error: "Server error" });
   }
 };
 
+// =============================
+// RESET PASSWORD
+// =============================
 exports.resetPassword = async (req, res) => {
   const { token } = req.params;
   const { password } = req.body;
@@ -88,10 +97,7 @@ exports.resetPassword = async (req, res) => {
 
     if (!user) return res.status(400).json({ error: "Invalid or expired token" });
 
-    // ✅ Hash the new password before saving
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-
+    const hashedPassword = await bcrypt.hash(password, 10);
     user.password = hashedPassword;
     user.resetPasswordToken = undefined;
     user.resetPasswordExpires = undefined;
@@ -100,55 +106,37 @@ exports.resetPassword = async (req, res) => {
 
     res.json({ message: "Password reset successful! You can login now." });
   } catch (err) {
-    console.error(err);
     res.status(500).json({ error: "Server error" });
   }
 };
 
-
-// View all users (protected)
-exports.viewUsers = async (req, res) => {
-  try {
-    const users = await User.find().select('-password'); // remove password from output
-    res.json(users);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
-
-// Delete user (protected)
-exports.deleteUser = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const user = await User.findByIdAndDelete(id);
-    if (!user) return res.status(404).json({ error: 'User not found' });
-
-    res.json({ message: 'User deleted', userId: id });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
-
-// Get logged-in user's profile
+// =============================
+// GET PROFILE (CURRENT USER ONLY)
+// =============================
 exports.getProfile = async (req, res) => {
   try {
-    res.json(req.user);
+    res.json({
+      username: req.user.username,
+      email: req.user.email,
+      role: req.user.role,
+      lastLogin: req.user.lastLogin,
+      createdAt: req.user.createdAt,
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-// Update profile
+// =============================
+// UPDATE PROFILE (CURRENT USER ONLY)
+// =============================
 exports.updateProfile = async (req, res) => {
   try {
     const { username, email, password } = req.body;
 
     if (username) req.user.username = username;
     if (email) req.user.email = email;
-    if (password) {
-      const hashed = await bcrypt.hash(password, 10);
-      req.user.password = hashed;
-    }
+    if (password) req.user.password = await bcrypt.hash(password, 10);
 
     await req.user.save();
 
@@ -158,11 +146,46 @@ exports.updateProfile = async (req, res) => {
   }
 };
 
-// Delete profile
+// =============================
+// DELETE PROFILE (CURRENT USER ONLY)
+// =============================
 exports.deleteProfile = async (req, res) => {
   try {
     await req.user.deleteOne();
     res.json({ message: "Profile deleted successfully" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// =============================
+// VIEW ALL USERS (ADMIN ONLY)
+// =============================
+exports.viewUsers = async (req, res) => {
+  try {
+    if (req.user.role !== "admin")
+      return res.status(403).json({ error: "Access denied" });
+
+    const users = await User.find().select("-password");
+    res.json(users);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// =============================
+// DELETE USER BY ID (ADMIN ONLY)
+// =============================
+exports.deleteUser = async (req, res) => {
+  try {
+    if (req.user.role !== "admin")
+      return res.status(403).json({ error: "Access denied" });
+
+    const { id } = req.params;
+    const user = await User.findByIdAndDelete(id);
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    res.json({ message: "User deleted successfully", userId: id });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
