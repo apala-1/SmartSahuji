@@ -1,269 +1,259 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import "../../styles/DataEntry.css";
 import UserNavbar from "../../components/Navbar/UserNavbar";
+import "../../styles/DataEntry.css";
 
 const DataEntry = () => {
-  const navigate = useNavigate();
-
-  const [transactionType, setTransactionType] = useState("sale");
-
+  const [products, setProducts] = useState([]);
   const [form, setForm] = useState({
-    product: "",
+    product_name: "",
+    barcode: "",
     category: "",
+    item_type: "Sale", // Sale or Purchase
+    sale_type: "",
     price: "",
     cost: "",
-    quantity: 1,
-    saleType: "Retail Sale",
+    quantity: "",
     date: "",
   });
-
   const [file, setFile] = useState(null);
 
-  // Redirect if not logged in
   useEffect(() => {
-    const token = localStorage.getItem("token")?.trim();
-    if (!token) {
-      alert("Please log in first!");
-      navigate("/login");
-    }
-  }, [navigate]);
+    fetch("/api/products", {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+    })
+      .then((res) => res.json())
+      .then((data) => setProducts(data))
+      .catch((err) => console.error("Fetch error:", err));
+  }, []);
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
+    setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  // =============================
-  // SINGLE ENTRY SUBMIT
-  // =============================
-  const handleSubmit = async () => {
-    // Validation
-    if (!form.product || !form.category || !form.date) {
-      alert("Please fill all required fields");
-      return;
-    }
-
-    if (transactionType === "sale" && (!form.price || !form.quantity)) {
-      alert("Please enter selling price and quantity");
-      return;
-    }
-
-    if (transactionType === "purchase" && (!form.cost || !form.quantity)) {
-      alert("Please enter buying cost and quantity");
-      return;
-    }
-
-    const token = localStorage.getItem("token")?.trim();
-    if (!token) return navigate("/login");
-
+  const handleSubmit = async (e) => {
+    e.preventDefault();
     try {
-      const res = await fetch("http://localhost:5000/api/product", {
+      const res = await fetch("/api/products", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
-        body: JSON.stringify({
-          transactionType,
-          product: form.product,
-          category: form.category,
-          price: transactionType === "sale" ? Number(form.price) : 0,
-          cost: transactionType === "purchase" ? Number(form.cost) : 0,
-          quantity: Number(form.quantity),
-          saleType: transactionType === "sale" ? form.saleType : "Purchase",
-          date: form.date,
-        }),
+        body: JSON.stringify(form),
       });
-
       const data = await res.json();
-      if (!res.ok) return alert(data.error || "Failed to save data");
-
-      alert("Record saved successfully");
-      setForm({
-        product: "",
-        category: "",
-        price: "",
-        cost: "",
-        quantity: 1,
-        saleType: "Retail Sale",
-        date: "",
-      });
+      if (res.ok) {
+        setProducts([data.product, ...products]);
+        setForm({
+          product_name: "",
+          barcode: "",
+          category: "",
+          item_type: "Sale",
+          sale_type: "",
+          price: "",
+          cost: "",
+          quantity: "",
+          date: "",
+        });
+      } else {
+        alert(data.error);
+      }
     } catch (err) {
-      console.error(err);
-      alert("Failed to save record");
+      alert("Error adding product: " + err.message);
     }
   };
 
-  // =============================
-  // BULK IMPORT
-  // =============================
-  const handleFileChange = (e) => setFile(e.target.files[0]);
+  const handleDelete = async (id) => {
+    try {
+      const res = await fetch(`/api/products/${id}`, {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setProducts(products.filter((p) => p._id !== id));
+      } else {
+        alert(data.error);
+      }
+    } catch (err) {
+      alert("Error deleting product: " + err.message);
+    }
+  };
 
-  const handleFileUpload = async () => {
-    if (!file) return alert("Please select a file first");
-
-    const token = localStorage.getItem("token")?.trim();
-    if (!token) return navigate("/login");
-
+  const handleUpload = async (e) => {
+    e.preventDefault();
     const formData = new FormData();
     formData.append("file", file);
 
     try {
-      const res = await fetch(
-        "http://localhost:5000/api/product/upload/excel",
-        {
-          method: "POST",
-          headers: { Authorization: `Bearer ${token}` }, // no content-type
-          body: formData,
+      const res = await fetch("/api/products/upload", {
+        method: "POST",
+        body: formData,
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
-      );
-
+      });
       const data = await res.json();
-      if (!res.ok) return alert(data.error || "Upload failed");
-
-      alert(data.message || "File uploaded successfully");
-      setFile(null); // clear file input
+      if (res.ok) {
+        alert(`${data.count} products uploaded`);
+        fetch("/api/products")
+          .then((res) => res.json())
+          .then((data) => setProducts(data));
+      } else {
+        alert(data.error);
+      }
     } catch (err) {
-      console.error(err);
-      alert("Upload failed");
+      alert("Upload error: " + err.message);
     }
   };
 
   return (
-    <>
-      <UserNavbar />
-      <div className="page-wrapper">
-        <main className="main-content">
-          <div className="entry-container wide-container">
-            <h2>Shop Ledger Entry</h2>
-            <p>Record sales and purchases for your shop</p>
+    <div>
+      <div className="data-entry-container">
+        <h2>Add Product</h2>
+        <form onSubmit={handleSubmit} className="data-entry-form">
+          {/* Sale/Purchase selection at top */}
+          <select
+            name="item_type"
+            value={form.item_type}
+            onChange={handleChange}
+          >
+            <option value="Sale">Sale</option>
+            <option value="Purchase">Purchase</option>
+          </select>
 
-            {/* TRANSACTION TYPE */}
-            <div className="input-row spaced-row">
-              <div className="input-group">
-                <label>TRANSACTION TYPE</label>
-                <select
-                  value={transactionType}
-                  onChange={(e) => setTransactionType(e.target.value)}
-                >
-                  <option value="sale">Sale (Money In)</option>
-                  <option value="purchase">Purchase (Money Out)</option>
-                </select>
-              </div>
-            </div>
+          <input
+            name="product_name"
+            value={form.product_name}
+            onChange={handleChange}
+            placeholder="Product Name"
+            required
+          />
 
-            {/* PRODUCT INFO */}
-            <div className="input-row spaced-row">
-              <div className="input-group">
-                <label>PRODUCT NAME</label>
-                <input
-                  type="text"
-                  name="product"
-                  value={form.product}
-                  onChange={handleChange}
-                />
-              </div>
+          <input
+            name="barcode"
+            value={form.barcode}
+            onChange={handleChange}
+            placeholder="Barcode"
+          />
 
-              <div className="input-group">
-                <label>CATEGORY</label>
-                <select
-                  name="category"
-                  value={form.category}
-                  onChange={handleChange}
-                >
-                  <option value="">Select Category</option>
-                  <option>Electronics</option>
-                  <option>Groceries & Food</option>
-                  <option>Clothing & Apparel</option>
-                  <option>Hardware</option>
-                  <option>Other</option>
-                </select>
-              </div>
-            </div>
+          <select
+            name="category"
+            value={form.category}
+            onChange={handleChange}
+            required
+          >
+            <option value="">Select Category</option>
+            <option value="Electronics">Electronics</option>
+            <option value="Clothing">Clothing</option>
+            <option value="Food">Food</option>
+            <option value="Other">Other</option>
+          </select>
 
-            {/* SALE FIELDS */}
-            {transactionType === "sale" && (
-              <div className="input-row spaced-row">
-                <div className="input-group">
-                  <label>SELLING PRICE (Rs.)</label>
-                  <input
-                    type="number"
-                    name="price"
-                    value={form.price}
-                    onChange={handleChange}
-                  />
-                </div>
+          {form.item_type === "Sale" && (
+            <>
+              <select
+                name="sale_type"
+                value={form.sale_type}
+                onChange={handleChange}
+                required
+              >
+                <option value="">Select Sale Type</option>
+                <option value="Retail">Retail</option>
+                <option value="Wholesale">Wholesale</option>
+                <option value="Online">Online</option>
+              </select>
 
-                <div className="input-group">
-                  <label>SALE TYPE</label>
-                  <select
-                    name="saleType"
-                    value={form.saleType}
-                    onChange={handleChange}
-                  >
-                    <option>Retail Sale</option>
-                    <option>Wholesale</option>
-                    <option>Credit (Udhari)</option>
-                    <option>Online Order</option>
-                  </select>
-                </div>
-              </div>
-            )}
+              <input
+                name="price"
+                type="number"
+                value={form.price}
+                onChange={handleChange}
+                placeholder="Price"
+                required
+              />
+            </>
+          )}
 
-            {/* PURCHASE FIELDS */}
-            {transactionType === "purchase" && (
-              <div className="input-row spaced-row">
-                <div className="input-group">
-                  <label>BUYING COST (Rs.)</label>
-                  <input
-                    type="number"
-                    name="cost"
-                    value={form.cost}
-                    onChange={handleChange}
-                  />
-                </div>
-              </div>
-            )}
+          {form.item_type === "Purchase" && (
+            <input
+              name="cost"
+              type="number"
+              value={form.cost}
+              onChange={handleChange}
+              placeholder="Cost"
+              required
+            />
+          )}
 
-            {/* COMMON */}
-            <div className="input-row spaced-row">
-              <div className="input-group">
-                <label>QUANTITY</label>
-                <input
-                  type="number"
-                  name="quantity"
-                  value={form.quantity}
-                  onChange={handleChange}
-                />
-              </div>
+          <input
+            name="quantity"
+            type="number"
+            value={form.quantity}
+            onChange={handleChange}
+            placeholder="Quantity"
+            required
+          />
+          <input
+            name="date"
+            type="date"
+            value={form.date}
+            onChange={handleChange}
+            required
+          />
+          <button type="submit">Add Product</button>
+        </form>
 
-              <div className="input-group">
-                <label>DATE</label>
-                <input
-                  type="date"
-                  name="date"
-                  value={form.date}
-                  onChange={handleChange}
-                />
-              </div>
-            </div>
+        <h2>Bulk Upload</h2>
+        <form onSubmit={handleUpload}>
+          <input type="file" onChange={(e) => setFile(e.target.files[0])} />
+          <button type="submit">Upload</button>
+        </form>
 
-            <button className="save-record-btn" onClick={handleSubmit}>
-              SAVE RECORD
-            </button>
-
-            {/* BULK UPLOAD */}
-            <hr />
-            <h3>Bulk Import (Optional)</h3>
-            <input type="file" onChange={handleFileChange} />
-            <button className="save-record-btn" onClick={handleFileUpload}>
-              UPLOAD FILE
-            </button>
-          </div>
-        </main>
+        <h2>Products</h2>
+        <table className="products-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Barcode</th>
+              <th>Category</th>
+              <th>Item Type</th>
+              <th>Sale Type</th>
+              <th>Price</th>
+              <th>Cost</th>
+              <th>Quantity</th>
+              <th>Date</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {Array.isArray(products) &&
+              products.map((p) => (
+                <tr key={p._id}>
+                  <td>{p.product_name}</td>
+                  <td>{p.barcode || "-"}</td>
+                  <td>{p.category}</td>
+                  <td>{p.item_type}</td>
+                  <td>{p.sale_type || "-"}</td>
+                  <td>{p.price}</td>
+                  <td>{p.cost}</td>
+                  <td>{p.quantity}</td>
+                  <td>{new Date(p.date).toLocaleDateString()}</td>
+                  <td>
+                    <button onClick={() => handleDelete(p._id)}>Delete</button>
+                  </td>
+                </tr>
+              ))}
+          </tbody>
+        </table>
       </div>
-    </>
+    </div>
   );
 };
 

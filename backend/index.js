@@ -36,7 +36,7 @@ mongoose.connect("mongodb://127.0.0.1:27017/smartSahuji", {
 // Routes
 // Routes
 app.use("/api/auth", authRoutes);
-app.use("/api/product", productRoutes);
+app.use("/api/products", productRoutes);
 app.use("/api/sales", salesRoutes);
 app.use("/api/upload", uploadRoutes);
 app.use("/api/insights", insightsRoutes);
