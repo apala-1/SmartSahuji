@@ -1,0 +1,21 @@
+name,company,buyingPrice,sellingPrice,quantityBought,currentStock,itemType,dateBought,status,lastBoughtQty,supplierName,supplierContact,sku,minStock,reorderQty,description
+Product_1,Acme Corp,25.5,45.0,50,20,Electronics,2026-01-01,Active,10,Supplier A,555-1001,SKU1001,5,20,High quality electronic gadget
+Product_2,TechNova,40.0,70.0,60,25,Electronics,2026-01-03,Active,15,Supplier B,555-1002,SKU1002,10,25,Latest tech device
+Product_3,Fashionista,15.0,30.0,80,30,Clothing,2026-01-05,Active,20,Supplier C,555-1003,SKU1003,8,20,Trendy clothing item
+Product_4,HomeEase,20.0,35.0,40,15,Home,2026-01-06,Active,5,Supplier D,555-1004,SKU1004,5,15,Useful home product
+Product_5,ToyLand,10.0,22.0,70,20,Toys,2026-01-07,Active,10,Supplier E,555-1005,SKU1005,10,20,Fun toy for kids
+Product_6,GadgetPro,30.0,55.0,50,25,Electronics,2026-01-08,Active,15,Supplier F,555-1006,SKU1006,8,20,Smart gadget with multiple features
+Product_7,StyleHub,18.0,35.0,60,20,Clothing,2026-01-09,Active,10,Supplier G,555-1007,SKU1007,5,15,Stylish and trendy apparel
+Product_8,KitchenKing,22.0,40.0,40,15,Home,2026-01-10,Active,10,Supplier H,555-1008,SKU1008,5,15,High quality kitchenware
+Product_9,PlayWorld,12.0,25.0,70,30,Toys,2026-01-11,Active,15,Supplier I,555-1009,SKU1009,10,20,Educational toy for children
+Product_10,ElectroMax,28.0,50.0,60,25,Electronics,2026-01-12,Active,10,Supplier J,555-1010,SKU1010,8,20,High performance electronic device
+Product_11,FashionFlex,16.0,32.0,50,20,Clothing,2026-01-13,Active,10,Supplier K,555-1011,SKU1011,5,15,Comfortable and trendy clothing
+Product_12,HomeSmart,21.0,38.0,40,15,Home,2026-01-14,Active,10,Supplier L,555-1012,SKU1012,5,15,Smart home utility product
+Product_13,ToyFun,11.0,23.0,70,30,Toys,2026-01-15,Active,10,Supplier M,555-1013,SKU1013,10,20,Fun and educational toy
+Product_14,ElectroGear,29.0,52.0,60,25,Electronics,2026-01-16,Active,15,Supplier N,555-1014,SKU1014,8,20,Latest electronic gear
+Product_15,StyleLine,17.0,34.0,50,20,Clothing,2026-01-17,Active,10,Supplier O,555-1015,SKU1015,5,15,Fashionable clothing item
+Product_16,HomePro,23.0,42.0,40,15,Home,2026-01-18,Active,10,Supplier P,555-1016,SKU1016,5,15,Essential home product
+Product_17,PlayTime,13.0,26.0,70,30,Toys,2026-01-19,Active,10,Supplier Q,555-1017,SKU1017,10,20,Interactive toy for kids
+Product_18,GadgetHub,31.0,57.0,50,25,Electronics,2026-01-20,Active,10,Supplier R,555-1018,SKU1018,8,20,Multi-functional gadget
+Product_19,FashionWave,16.5,33.0,60,20,Clothing,2026-01-21,Active,10,Supplier S,555-1019,SKU1019,5,15,Trendy apparel for youth
+Product_20,HomeEasePlus,24.0,44.0,40,15,Home,2026-01-22,Active,10,Supplier T,555-1020,SKU1020,5,15,Premium home utility product

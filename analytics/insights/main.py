@@ -97,6 +97,65 @@ def load_data():
 
     return df
 
+
+# ==============================
+# DATA LOADER
+# ==============================
+def inventory_data():
+    # data = list(collection.find())
+    # df = pd.DataFrame(data)
+    df = pd.read_csv('../../data/inventory.csv')
+    print(f"Df content: {df.head()}")
+    print("Loaded rows:", len(df))
+
+    # If collection empty, create safe dataframe
+    if df.empty:
+        return pd.DataFrame(
+            columns=["date","price","cost","quantity","category","product", "item_type"]
+        )
+
+    # ---- Ensure required columns exist ----
+    if "date" not in df.columns:
+        df["date"] = pd.to_datetime("today")
+
+    if "price" not in df.columns:
+        df["price"] = 0
+
+    if "cost" not in df.columns:
+        df["cost"] = 0
+
+    if "quantity" not in df.columns:
+        df["quantity"] = 1
+
+    if "category" not in df.columns:
+        df["category"] = "Unknown"
+
+    if "item_type" not in df.columns:
+        df["item_type"] = "Unknown"
+
+    if "product" not in df.columns:
+        df["product"] = "Unknown"
+
+    # ---- item_type conversions ----
+    df["date"] = pd.to_datetime(df["date"], errors="coerce")
+    df["price"] = pd.to_numeric(df["price"], errors="coerce").fillna(0)
+    df["cost"] = pd.to_numeric(df["cost"], errors="coerce").fillna(0)
+    df["quantity"] = pd.to_numeric(df["quantity"], errors="coerce").fillna(1)
+
+    # ---- Calculations ----
+    df["revenue"] = df["price"] * df["quantity"]
+    df["total_cost"] = df["cost"] * df["quantity"]
+    df["profit"] = df["revenue"] - df["total_cost"]
+    df["margin"] = np.where(
+        df["revenue"] == 0,
+        np.nan,
+        df["profit"] / df["revenue"]
+    )
+
+    return df
+
+
+
 @app.get("/insights")
 def insights(
     period: str = "weekly",
@@ -256,7 +315,7 @@ def forecast_sales(
 ):
     """
     Forecast sales and revenue for the next `period_days`.
-    Detect demand spikes in historical and forecasted data.
+    Automatically adapts to dataset size.
     """
 
     df = load_data()
@@ -270,70 +329,73 @@ def forecast_sales(
             "message": "No sales data available"
         }
 
-    # ------------------------------
-    # FILTER DATA
-    # ------------------------------
+    # Filter
     if category:
         df = df[df["category"] == category]
     if item_type:
         df = df[df["item_type"] == item_type]
 
-    # ------------------------------
-    # AGGREGATE DAILY SALES
-    # ------------------------------
+    # Aggregate daily sales
     daily_sales = df.groupby("date")["quantity"].sum().sort_index()
 
-    if len(daily_sales) < 7:
-        return {
-            "forecast": {},
-            "revenue_forecast": {},
-            "historical_spikes": {},
-            "forecast_spikes": {},
-            "message": "Not enough historical data for forecasting"
-        }
+    # Fill missing dates (important for continuous time series)
+    all_dates = pd.date_range(start=daily_sales.index.min(), end=daily_sales.index.max())
+    daily_sales = daily_sales.reindex(all_dates, fill_value=0)
 
-    # ------------------------------
-    # FORECAST USING HOLT-WINTERS
-    # ------------------------------
+    n_days = len(daily_sales)
+    seasonal_periods = 7  # weekly seasonality
+
+    # Forecast
     try:
-        model = ExponentialSmoothing(
-            daily_sales,
-            trend="add",
-            seasonal="add",
-            seasonal_periods=7
-        )
-        model_fit = model.fit()
-        forecast_values = model_fit.forecast(period_days)
+        if n_days < seasonal_periods:
+            # Very small data → simple average
+            forecast_values = pd.Series(
+                [daily_sales.mean()] * period_days,
+                index=pd.date_range(start=daily_sales.index.max() + pd.Timedelta(days=1), periods=period_days)
+            )
+        elif n_days < 2 * seasonal_periods:
+            # Enough for trend but not full seasonality
+            model = ExponentialSmoothing(
+                daily_sales,
+                trend="add",
+                seasonal=None
+            )
+            model_fit = model.fit()
+            forecast_values = model_fit.forecast(period_days)
+        else:
+            # Enough data for full seasonal forecast
+            model = ExponentialSmoothing(
+                daily_sales,
+                trend="add",
+                seasonal="add",
+                seasonal_periods=seasonal_periods
+            )
+            model_fit = model.fit()
+            forecast_values = model_fit.forecast(period_days)
     except Exception as e:
-        return {"error": f"Forecasting failed: {str(e)}"}
+        # fallback
+        forecast_values = pd.Series(
+            [daily_sales.mean()] * period_days,
+            index=pd.date_range(start=daily_sales.index.max() + pd.Timedelta(days=1), periods=period_days)
+        )
 
-    # ------------------------------
-    # REVENUE PROJECTION
-    # ------------------------------
+    # Revenue
     avg_price = df["price"].mean()
     revenue_forecast = forecast_values * avg_price
 
-    # ------------------------------
-    # HISTORICAL DEMAND SPIKES
-    # ------------------------------
-    rolling_avg = daily_sales.rolling(7).mean()
-    rolling_std = daily_sales.rolling(7).std()
+    # Historical spikes
+    rolling_avg = daily_sales.rolling(seasonal_periods).mean()
+    rolling_std = daily_sales.rolling(seasonal_periods).std()
     historical_spikes = daily_sales > (rolling_avg + spike_threshold * rolling_std)
-    historical_spikes_dict = {
-        str(k.date()): bool(v) for k, v in historical_spikes.items() if not pd.isna(v)
-    }
+    historical_spikes_dict = {str(k.date()): bool(v) for k, v in historical_spikes.items() if not pd.isna(v)}
 
-    # ------------------------------
-    # FORECAST DEMAND SPIKES
-    # ------------------------------
+    # Forecast spikes
     mean_hist = daily_sales.mean()
     std_hist = daily_sales.std()
     forecast_spikes = forecast_values > (mean_hist + spike_threshold * std_hist)
     forecast_spikes_dict = {str(k.date()): bool(v) for k, v in forecast_spikes.items()}
 
-    # ------------------------------
-    # FORMAT OUTPUT
-    # ------------------------------
+    # Format output
     forecast_dict = {str(k.date()): float(v) for k, v in forecast_values.items()}
     revenue_dict = {str(k.date()): float(v) for k, v in revenue_forecast.items()}
 
@@ -345,7 +407,178 @@ def forecast_sales(
         "metadata": {
             "avg_price": avg_price,
             "period_days": period_days,
-            "historical_days_used": len(daily_sales),
+            "historical_days_used": n_days,
             "spike_threshold_multiplier": spike_threshold
         }
+    }
+
+# ==============================
+# RECOMMENDATIONS ENDPOINT
+# ==============================
+
+@app.get("/recommendations")
+def recommendation(
+    period_days: int = 7,
+    category: str = None,
+    item_type: str = None,
+    spike_threshold: float = 1.5
+):
+
+    df = load_data()
+    inventory_df = inventory_data()
+
+    if df.empty or inventory_df.empty:
+        return {
+            "restock": [],
+            "pricing": [],
+            "bundling": []
+        }
+
+    # ==============================
+    # FILTER SALES
+    # ==============================
+    if category:
+        df = df[df["category"] == category]
+
+    if item_type:
+        df = df[df["item_type"] == item_type]
+
+    # ==============================
+    # DAILY SALES + AVG DEMAND
+    # ==============================
+    daily_sales = df.groupby(["date", "product"])["quantity"].sum().reset_index()
+    avg_daily = daily_sales.groupby("product")["quantity"].mean()
+    total_sales = df.groupby("product")["quantity"].sum()
+
+    # ==============================
+    # RESTOCK RECOMMENDATIONS
+    # ==============================
+    restock_recommendations = []
+
+    for _, item in inventory_df.iterrows():
+        product_name = item["name"]
+
+        if product_name not in avg_daily:
+            continue
+
+        avg_demand = avg_daily[product_name]
+        current_stock = item.get("currentStock", 0)
+        min_stock = item.get("minStock", 0)
+        reorder_qty = item.get("reorderQty", 0)
+
+        if avg_demand == 0:
+            continue
+
+        days_remaining = current_stock / avg_demand
+
+        urgency = None
+
+        if current_stock <= min_stock:
+            urgency = "Critical"
+        elif days_remaining < 7:
+            urgency = "High"
+        elif days_remaining < 14:
+            urgency = "Medium"
+
+        if urgency:
+            suggested_qty = max(reorder_qty, int(avg_demand * 14))
+
+            restock_recommendations.append({
+                "product": product_name,
+                "current_stock": int(current_stock),
+                "days_remaining": round(days_remaining, 2),
+                "suggested_reorder_qty": int(suggested_qty),
+                "urgency": urgency
+            })
+
+    # ==============================
+    # PRICE OPTIMIZATION
+    # ==============================
+    pricing_recommendations = []
+
+    if not total_sales.empty:
+        high_sales_threshold = total_sales.quantile(0.8)
+        low_sales_threshold = total_sales.quantile(0.2)
+
+        for _, item in inventory_df.iterrows():
+            product_name = item["name"]
+
+            if product_name not in total_sales:
+                continue
+
+            selling_price = item.get("sellingPrice", 0)
+            buying_price = item.get("buyingPrice", 0)
+            current_stock = item.get("currentStock", 0)
+
+            if selling_price == 0:
+                continue
+
+            margin = (selling_price - buying_price) / selling_price
+            product_sales = total_sales[product_name]
+
+            suggestion = None
+            reason = None
+
+            # High demand + strong margin
+            if product_sales >= high_sales_threshold and margin > 0.3:
+                suggestion = "Increase price by 5%"
+                reason = "High demand and strong margin"
+
+            # Low demand + high stock
+            elif product_sales <= low_sales_threshold and current_stock > 20:
+                suggestion = "Consider 5-10% discount"
+                reason = "Low demand and excess stock"
+
+            # Very low margin
+            elif margin < 0.1:
+                suggestion = "Review pricing strategy"
+                reason = "Low profit margin"
+
+            if suggestion:
+                pricing_recommendations.append({
+                    "product": product_name,
+                    "current_margin": round(margin, 2),
+                    "suggested_action": suggestion,
+                    "reason": reason
+                })
+
+    # ==============================
+    # SIMPLE PRODUCT BUNDLING
+    # ==============================
+    from itertools import combinations
+    from collections import Counter
+
+    bundling_recommendations = []
+
+    # Only works if you have transaction-level grouping
+    if "invoice_id" in df.columns:
+        transactions = (
+            df.groupby("invoice_id")["product"]
+            .apply(list)
+            .values
+        )
+
+        pair_counter = Counter()
+
+        for items in transactions:
+            unique_items = list(set(items))
+            for pair in combinations(unique_items, 2):
+                pair_counter[tuple(sorted(pair))] += 1
+
+        top_pairs = pair_counter.most_common(5)
+
+        for pair, count in top_pairs:
+            bundling_recommendations.append({
+                "products": list(pair),
+                "times_bought_together": count,
+                "suggested_discount": "10%"
+            })
+
+    # ==============================
+    # FINAL OUTPUT
+    # ==============================
+    return {
+        "restock": restock_recommendations,
+        "pricing": pricing_recommendations,
+        "bundling": bundling_recommendations
     }
