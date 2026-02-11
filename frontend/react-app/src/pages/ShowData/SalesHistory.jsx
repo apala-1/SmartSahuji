@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import UserNavbar from "../../components/Navbar/UserNavbar";
 import "./SalesHistory.css";
@@ -8,9 +8,10 @@ export default function SalesHistory() {
   const [sales, setSales] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [filter, setFilter] = useState("All"); // All, Sale, Purchase
 
   useEffect(() => {
-    const token = localStorage.getItem("token")?.trim();
+    const token = localStorage.getItem("token");
 
     if (!token) {
       alert("Please log in first!");
@@ -18,7 +19,7 @@ export default function SalesHistory() {
       return;
     }
 
-    fetch("http://localhost:5000/api/product", {
+    fetch("/api/products", {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -30,8 +31,11 @@ export default function SalesHistory() {
         return res.json();
       })
       .then((data) => {
-        if (Array.isArray(data)) setSales(data);
-        else setSales([]);
+        if (Array.isArray(data)) {
+          setSales(data);
+        } else {
+          setSales([]);
+        }
       })
       .catch((err) => {
         setError(err.message || "Something went wrong");
@@ -39,6 +43,9 @@ export default function SalesHistory() {
       })
       .finally(() => setLoading(false));
   }, [navigate]);
+
+  const filteredSales =
+    filter === "All" ? sales : sales.filter((s) => s.item_type === filter);
 
   if (loading) {
     return (
@@ -70,6 +77,15 @@ export default function SalesHistory() {
       <div className="main-content">
         <h2>Sales Ledger</h2>
 
+        <div className="filter-bar">
+          <label>Filter by Type: </label>
+          <select value={filter} onChange={(e) => setFilter(e.target.value)}>
+            <option value="All">All</option>
+            <option value="Sale">Sale</option>
+            <option value="Purchase">Purchase</option>
+          </select>
+        </div>
+
         <button className="analyze-btn" onClick={() => navigate("/analytics")}>
           Analyze Data
         </button>
@@ -77,9 +93,11 @@ export default function SalesHistory() {
         <table className="excel-main-grid">
           <thead>
             <tr>
-              <th>Product</th>
+              <th>Name</th>
+              <th>Barcode</th>
               <th>Category</th>
               <th>Item Type</th>
+              <th>Sale Type</th>
               <th>Selling (Rs)</th>
               <th>Buying (Rs)</th>
               <th>Quantity</th>
@@ -88,17 +106,20 @@ export default function SalesHistory() {
           </thead>
 
           <tbody>
-            {sales.map((s) => (
-              <tr key={s._id}>
-                <td>{s.product}</td>
-                <td>{s.category}</td>
-                <td>{s.item_type}</td>
-                <td>{s.price}</td>
-                <td>{s.cost}</td>
-                <td>{s.quantity}</td>
-                <td>{new Date(s.date).toLocaleDateString()}</td>
-              </tr>
-            ))}
+            {Array.isArray(filteredSales) &&
+              filteredSales.map((s) => (
+                <tr key={s._id}>
+                  <td>{s.product_name}</td>
+                  <td>{s.barcode || "-"}</td>
+                  <td>{s.category}</td>
+                  <td>{s.item_type}</td>
+                  <td>{s.sale_type || "-"}</td>
+                  <td>{s.price}</td>
+                  <td>{s.cost}</td>
+                  <td>{s.quantity}</td>
+                  <td>{new Date(s.date).toLocaleDateString()}</td>
+                </tr>
+              ))}
           </tbody>
         </table>
       </div>
