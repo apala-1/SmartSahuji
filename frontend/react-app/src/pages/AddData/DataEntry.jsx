@@ -20,6 +20,7 @@ const DataEntry = () => {
 
   const [file, setFile] = useState(null);
 
+  // Redirect if not logged in
   useEffect(() => {
     const token = localStorage.getItem("token")?.trim();
     if (!token) {
@@ -33,7 +34,11 @@ const DataEntry = () => {
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
+  // =============================
+  // SINGLE ENTRY SUBMIT
+  // =============================
   const handleSubmit = async () => {
+    // Validation
     if (!form.product || !form.category || !form.date) {
       alert("Please fill all required fields");
       return;
@@ -60,7 +65,7 @@ const DataEntry = () => {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          transactionType, // sale or purchase
+          transactionType,
           product: form.product,
           category: form.category,
           price: transactionType === "sale" ? Number(form.price) : 0,
@@ -90,26 +95,35 @@ const DataEntry = () => {
     }
   };
 
+  // =============================
+  // BULK IMPORT
+  // =============================
   const handleFileChange = (e) => setFile(e.target.files[0]);
 
   const handleFileUpload = async () => {
     if (!file) return alert("Please select a file first");
+
     const token = localStorage.getItem("token")?.trim();
+    if (!token) return navigate("/login");
 
     const formData = new FormData();
     formData.append("file", file);
 
     try {
-      const res = await fetch("http://localhost:5000/api/product/upload", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-        body: formData,
-      });
+      const res = await fetch(
+        "http://localhost:5000/api/product/upload/excel",
+        {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` }, // no content-type
+          body: formData,
+        },
+      );
 
       const data = await res.json();
       if (!res.ok) return alert(data.error || "Upload failed");
 
       alert(data.message || "File uploaded successfully");
+      setFile(null); // clear file input
     } catch (err) {
       console.error(err);
       alert("Upload failed");
@@ -118,6 +132,7 @@ const DataEntry = () => {
 
   return (
     <>
+      <UserNavbar />
       <div className="page-wrapper">
         <main className="main-content">
           <div className="entry-container wide-container">
@@ -240,8 +255,7 @@ const DataEntry = () => {
 
             {/* BULK UPLOAD */}
             <hr />
-
-            <h3>Bulk Import</h3>
+            <h3>Bulk Import (Optional)</h3>
             <input type="file" onChange={handleFileChange} />
             <button className="save-record-btn" onClick={handleFileUpload}>
               UPLOAD FILE
