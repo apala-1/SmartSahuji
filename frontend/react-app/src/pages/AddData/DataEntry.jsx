@@ -102,7 +102,12 @@ const DataEntry = () => {
       const data = await res.json();
       if (res.ok) {
         alert(`${data.count} products uploaded`);
-        fetch("/api/products")
+        fetch("/api/products", {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        })
           .then((res) => res.json())
           .then((data) => setProducts(data));
       } else {

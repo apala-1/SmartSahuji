@@ -1,7 +1,7 @@
 const Product = require("../models/Product");
 const XLSX = require("xlsx");
 const fs = require("fs");
-const csvParse = require("csv-parse/lib/sync");
+const { parse } = require("csv-parse/sync");
 
 // Add a new product
 exports.addProduct = async (req, res) => {
@@ -93,7 +93,7 @@ exports.uploadFile = async (req, res) => {
 
     if (req.file.mimetype === "text/csv") {
       const fileContent = fs.readFileSync(filePath);
-      const rows = csvParse(fileContent, { columns: true, trim: true });
+      const rows = parse(fileContent, { columns: true, trim: true });
 
       rows.forEach((row) => {
         products.push({
