@@ -1,6 +1,14 @@
 const mongoose = require("mongoose");
 
-const inventorySchema = new mongoose.Schema({
+const inventorySchema = new mongoose.Schema(
+  {
+    user:{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+      index: true
+    },
+
   name: { type: String, required: true },
   company: { type: String },
   buyingPrice: { type: Number, required: true },
