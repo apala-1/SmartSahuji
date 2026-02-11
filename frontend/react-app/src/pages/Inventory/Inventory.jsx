@@ -1,415 +1,349 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import * as XLSX from "xlsx";
 import "../../styles/Inventory.css";
-import { ToastContainer, toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
 
-const ITEMS_PER_PAGE = 10;
-
-const InventoryPage = () => {
-  const token = localStorage.getItem("token");
-
+const Inventory = () => {
   const [inventory, setInventory] = useState([]);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
   const [form, setForm] = useState({
     name: "",
     company: "",
+    barcode: "",
     buyingPrice: "",
     sellingPrice: "",
     quantityBought: "",
     currentStock: "",
-    itemType: "",
-    dateBought: "",
-    status: "Active",
-    sku: "",
-    minStock: "",
-    reorderQty: "",
+    itemType: "General",
     description: "",
-    _id: null,
+    _id: null, // for editing
   });
-  const [previewData, setPreviewData] = useState([]);
-  const [showPreview, setShowPreview] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [file, setFile] = useState(null);
 
-  const api = axios.create({
-    baseURL: "http://localhost:5000/api/inventory",
-    headers: { Authorization: `Bearer ${token}` },
+  // Axios instance
+  const axiosInstance = axios.create({
+    baseURL: "http://localhost:5000/api",
   });
 
-  // ==============================
+  // Request interceptor to add token
+  axiosInstance.interceptors.request.use((config) => {
+    const token = localStorage.getItem("token");
+    if (token) config.headers.Authorization = `Bearer ${token}`;
+    return config;
+  });
+
+  // Response interceptor to refresh token on 401
+  axiosInstance.interceptors.response.use(
+    (res) => res,
+    async (err) => {
+      const originalReq = err.config;
+      if (err.response && err.response.status === 401 && !originalReq._retry) {
+        originalReq._retry = true;
+        const refreshToken = localStorage.getItem("refreshToken");
+        if (!refreshToken) {
+          alert("Session expired. Please login again.");
+          return Promise.reject(err);
+        }
+
+        try {
+          const res = await axios.post(
+            "http://localhost:5000/api/auth/refresh",
+            { token: refreshToken },
+          );
+          localStorage.setItem("token", res.data.token);
+          originalReq.headers.Authorization = `Bearer ${res.data.token}`;
+          return axiosInstance(originalReq);
+        } catch (refreshErr) {
+          alert("Session expired. Please login again.");
+          return Promise.reject(refreshErr);
+        }
+      }
+      return Promise.reject(err);
+    },
+  );
+
   // Fetch inventory
-  // ==============================
   const fetchInventory = async () => {
     try {
-      const res = await api.get("/");
-      setInventory(res.data.inventory || []);
+      const res = await axiosInstance.get("/inventory");
+      const items = Array.isArray(res.data)
+        ? res.data
+        : res.data.inventory || [];
+      setInventory(items);
     } catch (err) {
-      console.error(err);
-      toast.error("Failed to fetch inventory");
+      console.error("Fetch inventory error:", err);
+      setInventory([]);
     }
   };
 
   useEffect(() => {
     fetchInventory();
-    // eslint-disable-next-line
   }, []);
 
-  // ==============================
-  // Form handlers
-  // ==============================
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
+  // Handle input changes
+  const handleChange = (e) =>
+    setForm({ ...form, [e.target.name]: e.target.value });
+
+  // Auto-fill
+  const handleAutofill = async (e) => {
+    const value = e.target.value;
+    if (!value) return;
+    try {
+      const res = await axiosInstance.get(`/inventory/autofill?query=${value}`);
+      if (res.data && res.data.product_name) {
+        setForm({
+          ...form,
+          name: res.data.product_name,
+          company: res.data.company,
+          barcode: value,
+          buyingPrice: res.data.buyingPrice,
+          sellingPrice: res.data.sellingPrice,
+          currentStock: res.data.currentStock,
+          itemType: res.data.itemType,
+          _id: res.data._id || null,
+        });
+      }
+    } catch (err) {
+      console.error("Autofill error:", err);
+    }
   };
 
-  const resetForm = () => {
-    setForm({
-      name: "",
-      company: "",
-      buyingPrice: "",
-      sellingPrice: "",
-      quantityBought: "",
-      currentStock: "",
-      itemType: "",
-      dateBought: "",
-      status: "Active",
-      sku: "",
-      minStock: "",
-      reorderQty: "",
-      description: "",
-      _id: null,
-    });
-  };
-
-  // ==============================
-  // Add / Update Inventory
-  // ==============================
+  // Add / Update inventory
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.name || !form.quantityBought) {
-      return toast.warning("Please provide name and quantity bought");
-    }
-
-    const payload = {
-      ...form,
-      buyingPrice: Number(form.buyingPrice) || 0,
-      sellingPrice: Number(form.sellingPrice) || 0,
-      quantityBought: Number(form.quantityBought) || 0,
-      currentStock:
-        Number(form.currentStock) || Number(form.quantityBought) || 0,
-      minStock: Number(form.minStock) || 0,
-      reorderQty: Number(form.reorderQty) || 0,
-    };
-
     try {
-      const res = form._id
-        ? await api.put(`/${form._id}`, payload)
-        : await api.post("/", payload);
+      if (form._id) {
+        // Update existing
+        await axiosInstance.put(`/inventory/${form._id}`, form);
+        alert("Inventory updated!");
+      } else {
+        // Add new
+        await axiosInstance.post("/inventory", form);
+        alert("Inventory added!");
+      }
 
-      toast.success(res.data.message);
-      resetForm();
+      // Reset form
+      setForm({
+        name: "",
+        company: "",
+        barcode: "",
+        buyingPrice: "",
+        sellingPrice: "",
+        quantityBought: "",
+        currentStock: "",
+        itemType: "General",
+        description: "",
+        _id: null,
+      });
+
       fetchInventory();
-      setCurrentPage(1);
     } catch (err) {
-      console.error(err);
-      toast.error(err.response?.data?.error || "Failed to save inventory");
+      console.error("Add/Update inventory error:", err);
+      alert(err.response?.data?.error || "Failed to save inventory");
     }
   };
 
-  // ==============================
-  // Edit / Delete
-  // ==============================
+  // Edit inventory
   const handleEdit = (item) => {
-    setForm({
-      ...item,
-      dateBought: item.dateBought ? item.dateBought.slice(0, 10) : "",
-    });
+    setForm({ ...item });
   };
 
+  // Delete inventory
   const handleDelete = async (id) => {
     if (!window.confirm("Are you sure you want to delete this item?")) return;
     try {
-      const res = await api.delete(`/${id}`);
-      toast.success(res.data.message);
+      await axiosInstance.delete(`/inventory/${id}`);
+      alert("Item deleted!");
       fetchInventory();
     } catch (err) {
-      console.error(err);
-      toast.error("Failed to delete item");
+      console.error("Delete error:", err);
+      alert(err.response?.data?.error || "Failed to delete item");
     }
   };
 
-  // ==============================
-  // Export to Excel
-  // ==============================
+  // Search inventory
+  const handleSearch = async (e) => {
+    e.preventDefault();
+    try {
+      const res = await axiosInstance.get(
+        `/inventory/search?query=${searchQuery}`,
+      );
+      const items = Array.isArray(res.data) ? res.data : res.data.items || [];
+      setInventory(items);
+    } catch (err) {
+      console.error("Search error:", err);
+    }
+  };
+
+  // Export inventory
   const handleExport = async () => {
     try {
-      const res = await api.get("/export/excel", { responseType: "blob" });
+      const res = await axiosInstance.get("/inventory/export/excel", {
+        responseType: "blob",
+      });
       const url = window.URL.createObjectURL(new Blob([res.data]));
       const link = document.createElement("a");
       link.href = url;
-      link.setAttribute("download", "inventory.xlsx");
+      link.setAttribute("download", `inventory.xlsx`);
       document.body.appendChild(link);
       link.click();
       link.remove();
-      toast.success("Export successful");
     } catch (err) {
-      console.error(err);
-      toast.error("Export failed");
+      console.error("Export error:", err);
+      alert("Failed to export inventory");
     }
   };
 
-  // ==============================
-  // Bulk Upload Preview
-  // ==============================
-  const handleBulkUploadPreview = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    try {
-      const reader = new FileReader();
-      reader.onload = (evt) => {
-        const data = new Uint8Array(evt.target.result);
-        const workbook = XLSX.read(data, { type: "array" });
-        const sheetName = workbook.SheetNames[0];
-        const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
-
-        if (jsonData.length === 0) {
-          return toast.warning("Excel file is empty");
-        }
-
-        setPreviewData(jsonData);
-        setShowPreview(true);
-      };
-      reader.readAsArrayBuffer(file);
-    } catch (err) {
-      console.error(err);
-      toast.error("Failed to read Excel file");
-    }
-  };
-
-  const confirmBulkUpload = async () => {
-    const fileInput = document.getElementById("bulk-upload-file");
-    if (!fileInput.files[0]) return toast.warning("No file selected");
-
+  // Bulk upload
+  const handleFileChange = (e) => setFile(e.target.files[0]);
+  const handleBulkUpload = async () => {
+    if (!file) return alert("Select a file first!");
     const formData = new FormData();
-    formData.append("file", fileInput.files[0]);
-
+    formData.append("file", file);
     try {
-      const res = await api.post("/upload/excel", formData, {
+      await axiosInstance.post("/inventory/upload/excel", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
-      toast.success(res.data.message);
+      alert("Bulk upload successful!");
+      setFile(null);
       fetchInventory();
-      setShowPreview(false);
-      fileInput.value = "";
     } catch (err) {
-      console.error(err);
-      toast.error(err.response?.data?.error || "Bulk upload failed");
+      console.error("Bulk upload error:", err);
+      alert(err.response?.data?.error || "Bulk upload failed");
     }
   };
-
-  // ==============================
-  // Search & Pagination
-  // ==============================
-  const filteredInventory = inventory.filter(
-    (item) =>
-      item.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.company?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.itemType?.toLowerCase().includes(searchQuery.toLowerCase()),
-  );
-
-  const totalPages = Math.ceil(filteredInventory.length / ITEMS_PER_PAGE);
-  const paginatedInventory = filteredInventory.slice(
-    (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE,
-  );
 
   return (
     <div className="inventory-page">
-      <ToastContainer position="top-right" autoClose={3000} />
+      <h2>Inventory Management</h2>
 
-      <h2>Inventory Dashboard</h2>
-
-      {/* Export / Bulk Upload */}
-      <div className="inventory-actions">
-        <button onClick={handleExport}>Export to Excel</button>
-        <input
-          type="file"
-          id="bulk-upload-file"
-          accept=".xlsx, .xls"
-          onChange={handleBulkUploadPreview}
-          style={{ marginLeft: "10px" }}
-        />
-      </div>
-
-      {/* Bulk Upload Preview */}
-      {showPreview && (
-        <div className="bulk-preview">
-          <h4>Excel Preview</h4>
-          <div className="preview-table-container">
-            <table>
-              <thead>
-                <tr>
-                  {previewData[0] &&
-                    Object.keys(previewData[0]).map((key) => (
-                      <th key={key}>{key}</th>
-                    ))}
-                </tr>
-              </thead>
-              <tbody>
-                {previewData.map((row, idx) => (
-                  <tr key={idx}>
-                    {Object.values(row).map((val, i) => (
-                      <td key={i}>{val}</td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <button onClick={confirmBulkUpload}>Confirm Upload</button>
-          <button onClick={() => setShowPreview(false)}>Cancel</button>
-        </div>
-      )}
-
-      {/* Search Bar */}
-      <div className="search-bar">
+      {/* Search */}
+      <form className="search-form" onSubmit={handleSearch}>
         <input
           type="text"
-          placeholder="Search by name, company or category..."
+          placeholder="Search by name, company or category"
           value={searchQuery}
-          onChange={(e) => {
-            setSearchQuery(e.target.value);
-            setCurrentPage(1);
-          }}
+          onChange={(e) => setSearchQuery(e.target.value)}
         />
-        <button onClick={() => setSearchQuery("")}>Reset</button>
+        <button type="submit">Search</button>
+      </form>
+
+      {/* Export & Bulk Upload */}
+      <div className="inventory-actions">
+        <button onClick={handleExport}>Export to Excel</button>
+        <input type="file" onChange={handleFileChange} />
+        <button onClick={handleBulkUpload}>Bulk Upload</button>
       </div>
 
-      {/* Inventory Form */}
+      {/* Add / Edit Inventory Form */}
       <form className="inventory-form" onSubmit={handleSubmit}>
-        <h3>{form._id ? "Update Inventory" : "Add Inventory"}</h3>
-        <div className="form-grid">
-          {[
-            {
-              name: "name",
-              placeholder: "Product Name",
-              type: "text",
-              required: true,
-            },
-            { name: "company", placeholder: "Company / Brand", type: "text" },
-            {
-              name: "buyingPrice",
-              placeholder: "Buying Price",
-              type: "number",
-            },
-            {
-              name: "sellingPrice",
-              placeholder: "Selling Price",
-              type: "number",
-            },
-            {
-              name: "quantityBought",
-              placeholder: "Quantity Bought",
-              type: "number",
-            },
-            {
-              name: "currentStock",
-              placeholder: "Current Stock",
-              type: "number",
-            },
-            { name: "itemType", placeholder: "Category / Type", type: "text" },
-            { name: "dateBought", placeholder: "Date Bought", type: "date" },
-            { name: "sku", placeholder: "SKU", type: "text" },
-            { name: "minStock", placeholder: "Min Stock", type: "number" },
-            { name: "reorderQty", placeholder: "Reorder Qty", type: "number" },
-            { name: "description", placeholder: "Description", type: "text" },
-          ].map((field) => (
-            <input
-              key={field.name}
-              type={field.type}
-              name={field.name}
-              placeholder={field.placeholder}
-              value={form[field.name]}
-              onChange={handleChange}
-              required={field.required || false}
-            />
-          ))}
-        </div>
-        <button type="submit">{form._id ? "Update Item" : "Add Item"}</button>
+        <input
+          name="name"
+          placeholder="Product Name"
+          value={form.name}
+          onChange={handleChange}
+          onBlur={handleAutofill}
+          required
+        />
+        <input
+          name="company"
+          placeholder="Company/Brand"
+          value={form.company}
+          onChange={handleChange}
+          required
+        />
+        <input
+          name="barcode"
+          placeholder="Barcode"
+          value={form.barcode}
+          onChange={handleChange}
+          onBlur={handleAutofill}
+          required
+        />
+        <input
+          type="number"
+          name="buyingPrice"
+          placeholder="Buying Price"
+          value={form.buyingPrice}
+          onChange={handleChange}
+          required
+        />
+        <input
+          type="number"
+          name="sellingPrice"
+          placeholder="Selling Price"
+          value={form.sellingPrice}
+          onChange={handleChange}
+        />
+        <input
+          type="number"
+          name="quantityBought"
+          placeholder="Quantity Bought"
+          value={form.quantityBought}
+          onChange={handleChange}
+          required
+        />
+        <input
+          type="number"
+          name="currentStock"
+          placeholder="Current Stock"
+          value={form.currentStock}
+          onChange={handleChange}
+          required
+        />
+        <select name="itemType" value={form.itemType} onChange={handleChange}>
+          <option value="General">General</option>
+          <option value="Electronics">Electronics</option>
+          <option value="Food">Food</option>
+          <option value="Clothing">Clothing</option>
+        </select>
+        <input
+          name="description"
+          placeholder="Description"
+          value={form.description}
+          onChange={handleChange}
+        />
+        <button type="submit">{form._id ? "Update" : "Add"} Inventory</button>
       </form>
 
       {/* Inventory Table */}
-      <div className="table-container">
-        <table className="inventory-table">
-          <thead className="sticky-header">
-            <tr>
-              <th>Name</th>
-              <th>Company</th>
-              <th>Buying Price</th>
-              <th>Selling Price</th>
-              <th>Qty</th>
-              <th>Stock</th>
-              <th>Category</th>
-              <th>Date</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {paginatedInventory.map((item) => (
-              <tr
-                key={item._id}
-                className={
-                  item.minStock && item.currentStock < item.minStock
-                    ? "low-stock"
-                    : ""
-                }
-              >
+      <table className="inventory-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Company</th>
+            <th>Barcode</th>
+            <th>Buying</th>
+            <th>Selling</th>
+            <th>Qty Bought</th>
+            <th>Current Stock</th>
+            <th>Category</th>
+            <th>Description</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {Array.isArray(inventory) &&
+            inventory.map((item) => (
+              <tr key={item._id}>
                 <td>{item.name}</td>
                 <td>{item.company}</td>
+                <td>{item.barcode}</td>
                 <td>{item.buyingPrice}</td>
                 <td>{item.sellingPrice}</td>
                 <td>{item.quantityBought}</td>
                 <td>{item.currentStock}</td>
                 <td>{item.itemType}</td>
-                <td>
-                  {item.dateBought
-                    ? new Date(item.dateBought).toLocaleDateString()
-                    : ""}
-                </td>
+                <td>{item.description}</td>
                 <td>
                   <button onClick={() => handleEdit(item)}>Edit</button>
                   <button onClick={() => handleDelete(item._id)}>Delete</button>
                 </td>
               </tr>
             ))}
-          </tbody>
-        </table>
-
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="pagination">
-            <button
-              disabled={currentPage === 1}
-              onClick={() => setCurrentPage((p) => p - 1)}
-            >
-              Prev
-            </button>
-            <span>
-              Page {currentPage} of {totalPages}
-            </span>
-            <button
-              disabled={currentPage === totalPages}
-              onClick={() => setCurrentPage((p) => p + 1)}
-            >
-              Next
-            </button>
-          </div>
-        )}
-      </div>
+        </tbody>
+      </table>
     </div>
   );
 };
 
-export default InventoryPage;
+export default Inventory;

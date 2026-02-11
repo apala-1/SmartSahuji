@@ -30,6 +30,7 @@ exports.register = async (req, res) => {
 // =============================
 // LOGIN USER
 // =============================
+// LOGIN USER
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -39,19 +40,26 @@ exports.login = async (req, res) => {
     const valid = await bcrypt.compare(password, user.password);
     if (!valid) return res.status(400).json({ error: "Invalid password" });
 
-    // Generate JWT token
+    // Generate JWT access token (short-lived)
     const token = jwt.sign(
       { id: user._id, role: user.role },
       process.env.JWT_SECRET,
-      { expiresIn: "1h" }
+      { expiresIn: "15m" } // short-lived access token
     );
 
-    // Update lastLogin and store session token
-    user.lastLogin = new Date();
-    user.sessions.push({ token });
+    // Generate refresh token (longer-lived)
+    const refreshToken = jwt.sign(
+      { id: user._id },
+      process.env.REFRESH_SECRET, 
+      { expiresIn: "7d" }
+    );
+
+    // Save refresh token in user document
+    user.refreshToken = refreshToken;
     await user.save();
 
-    res.json({ token, username: user.username, email: user.email, role: user.role });
+    // Send both tokens to frontend
+    res.json({ token, refreshToken, username: user.username, email: user.email, role: user.role });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -188,5 +196,31 @@ exports.deleteUser = async (req, res) => {
     res.json({ message: "User deleted successfully", userId: id });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+};
+
+
+// Inside controllers/authController.js
+exports.refreshToken = async (req, res) => {
+  const { token } = req.body;
+  if (!token) return res.status(401).json({ error: "No refresh token provided" });
+
+  try {
+    const decoded = jwt.verify(token, process.env.REFRESH_SECRET);
+
+    const user = await User.findById(decoded.id);
+    if (!user || user.refreshToken !== token)
+      return res.status(403).json({ error: "Invalid refresh token" });
+
+    const newToken = jwt.sign(
+      { id: user._id, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: "15m" }
+    );
+
+    res.json({ token: newToken });
+  } catch (err) {
+    console.error(err);
+    res.status(403).json({ error: "Invalid or expired refresh token" });
   }
 };

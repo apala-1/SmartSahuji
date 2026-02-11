@@ -15,5 +15,6 @@ router.delete('/delete/:id', auth, authController.deleteUser);
 router.get("/profile", auth, authController.getProfile);
 router.put("/profile", auth, authController.updateProfile);
 router.delete("/profile", auth, authController.deleteProfile);
+router.post("/refresh", authController.refreshToken);
 
 module.exports = router;

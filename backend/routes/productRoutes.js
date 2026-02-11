@@ -13,6 +13,7 @@ const {
 
 const auth = require("../middleware/authMiddleware");
 
+// Multer storage config
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, "uploads/");
@@ -21,12 +22,14 @@ const storage = multer.diskStorage({
     cb(null, Date.now() + path.extname(file.originalname));
   },
 });
+
 const upload = multer({ storage });
 
+// Routes
 router.post("/", auth, addProduct);
 router.get("/", auth, getProducts);
-router.delete("/:id", auth, deleteProduct);
 router.put("/:id", auth, updateProduct);
+router.delete("/:id", auth, deleteProduct);
 router.post("/upload", auth, upload.single("file"), uploadFile);
 
 module.exports = router;

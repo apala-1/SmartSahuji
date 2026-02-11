@@ -1,263 +1,280 @@
 import React, { useState, useEffect } from "react";
-import UserNavbar from "../../components/Navbar/UserNavbar";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import "../../styles/DataEntry.css";
 
 const DataEntry = () => {
-  const [products, setProducts] = useState([]);
-  const [form, setForm] = useState({
+  const navigate = useNavigate();
+
+  const [transactionType, setTransactionType] = useState("Sale");
+  const [formData, setFormData] = useState({
     product_name: "",
     barcode: "",
     category: "",
-    item_type: "Sale", // Sale or Purchase
     sale_type: "",
     price: "",
     cost: "",
     quantity: "",
     date: "",
   });
-  const [file, setFile] = useState(null);
 
-  useEffect(() => {
-    fetch("/api/products", {
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
-      },
-    })
-      .then((res) => res.json())
-      .then((data) => setProducts(data))
-      .catch((err) => console.error("Fetch error:", err));
-  }, []);
+  const [currentStock, setCurrentStock] = useState(null);
+  const [loading, setLoading] = useState(false);
 
+  // ===============================
+  // HANDLE INPUT CHANGE
+  // ===============================
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+
+    // Trigger autofill on product_name or barcode
+    if (name === "product_name" || name === "barcode") {
+      fetchProductDetails(
+        name === "product_name" ? value : undefined,
+        name === "barcode" ? value : undefined,
+      );
+    }
   };
 
+  // ===============================
+  // FETCH PRODUCT DETAILS FOR AUTOFILL
+  // ===============================
+  const fetchProductDetails = async (name, barcode) => {
+    if (!name && !barcode) return;
+
+    try {
+      const query = new URLSearchParams();
+      if (name) query.append("name", name);
+      if (barcode) query.append("barcode", barcode);
+
+      const res = await axios.get(`/api/inventory/autofill?${query}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      });
+
+      const data = res.data;
+
+      if (data) {
+        setFormData((prev) => ({
+          ...prev,
+          product_name: data.name,
+          barcode: data.barcode,
+          category: data.category,
+          price: data.sellingPrice || "",
+          cost: data.buyingPrice || "",
+        }));
+        setCurrentStock(data.currentStock);
+      } else {
+        setCurrentStock(null);
+      }
+    } catch (err) {
+      setCurrentStock(null);
+      console.error("Autofill error:", err);
+    }
+  };
+
+  // ===============================
+  // HANDLE FORM SUBMIT
+  // ===============================
   const handleSubmit = async (e) => {
     e.preventDefault();
-    try {
-      const res = await fetch("/api/products", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-        body: JSON.stringify(form),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setProducts([data.product, ...products]);
-        setForm({
-          product_name: "",
-          barcode: "",
-          category: "",
-          item_type: "Sale",
-          sale_type: "",
-          price: "",
-          cost: "",
-          quantity: "",
-          date: "",
-        });
-      } else {
-        alert(data.error);
-      }
-    } catch (err) {
-      alert("Error adding product: " + err.message);
+
+    if (!formData.product_name || !formData.quantity || !formData.date) {
+      toast.error("Product name, quantity and date are required");
+      return;
     }
-  };
 
-  const handleDelete = async (id) => {
-    try {
-      const res = await fetch(`/api/products/${id}`, {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-        method: "DELETE",
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setProducts(products.filter((p) => p._id !== id));
-      } else {
-        alert(data.error);
-      }
-    } catch (err) {
-      alert("Error deleting product: " + err.message);
+    if (
+      transactionType === "Sale" &&
+      (!formData.price || !formData.sale_type)
+    ) {
+      toast.error("Sale requires price and sale type");
+      return;
     }
-  };
 
-  const handleUpload = async (e) => {
-    e.preventDefault();
-    const formData = new FormData();
-    formData.append("file", file);
+    if (transactionType === "Sale" && currentStock !== null) {
+      if (currentStock <= 0) {
+        toast.error("Product is out of stock");
+        return;
+      }
+
+      if (Number(formData.quantity) > currentStock) {
+        toast.error(`Only ${currentStock} items available`);
+        return;
+      }
+    }
+
+    setLoading(true);
 
     try {
-      const res = await fetch("/api/products/upload", {
-        method: "POST",
-        body: formData,
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
+      const res = await axios.post(
+        "/api/products",
+        {
+          ...formData,
+          item_type: transactionType,
         },
+        {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        },
+      );
+
+      toast.success(res.data.message);
+      setFormData({
+        product_name: "",
+        barcode: "",
+        category: "",
+        sale_type: "",
+        price: "",
+        cost: "",
+        quantity: "",
+        date: "",
       });
-      const data = await res.json();
-      if (res.ok) {
-        alert(`${data.count} products uploaded`);
-        fetch("/api/products", {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        })
-          .then((res) => res.json())
-          .then((data) => setProducts(data));
-      } else {
-        alert(data.error);
-      }
+      setCurrentStock(null);
     } catch (err) {
-      alert("Upload error: " + err.message);
+      console.error(err);
+      toast.error(err.response?.data?.error || "Server error");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div>
-      <div className="data-entry-container">
-        <h2>Add Product</h2>
-        <form onSubmit={handleSubmit} className="data-entry-form">
-          {/* Sale/Purchase selection at top */}
+    <div className="data-entry-container">
+      <ToastContainer position="top-right" autoClose={3000} />
+      <h2>Product Transaction Entry</h2>
+
+      <form onSubmit={handleSubmit} className="data-entry-form">
+        {/* TRANSACTION TYPE */}
+        <label>
+          Transaction Type
           <select
-            name="item_type"
-            value={form.item_type}
-            onChange={handleChange}
+            value={transactionType}
+            onChange={(e) => setTransactionType(e.target.value)}
           >
             <option value="Sale">Sale</option>
             <option value="Purchase">Purchase</option>
           </select>
+        </label>
 
+        {/* PRODUCT NAME */}
+        <label>
+          Product Name
           <input
+            type="text"
             name="product_name"
-            value={form.product_name}
+            value={formData.product_name}
             onChange={handleChange}
-            placeholder="Product Name"
+            placeholder="Enter product name"
             required
           />
+        </label>
 
+        {/* BARCODE */}
+        <label>
+          Barcode
           <input
+            type="text"
             name="barcode"
-            value={form.barcode}
+            value={formData.barcode}
             onChange={handleChange}
-            placeholder="Barcode"
+            placeholder="Enter barcode"
           />
+        </label>
 
-          <select
-            name="category"
-            value={form.category}
-            onChange={handleChange}
-            required
-          >
-            <option value="">Select Category</option>
-            <option value="Electronics">Electronics</option>
-            <option value="Clothing">Clothing</option>
-            <option value="Food">Food</option>
-            <option value="Other">Other</option>
-          </select>
-
-          {form.item_type === "Sale" && (
-            <>
-              <select
-                name="sale_type"
-                value={form.sale_type}
-                onChange={handleChange}
-                required
-              >
-                <option value="">Select Sale Type</option>
-                <option value="Retail">Retail</option>
-                <option value="Wholesale">Wholesale</option>
-                <option value="Online">Online</option>
-              </select>
-
-              <input
-                name="price"
-                type="number"
-                value={form.price}
-                onChange={handleChange}
-                placeholder="Price"
-                required
-              />
-            </>
-          )}
-
-          {form.item_type === "Purchase" && (
-            <input
-              name="cost"
-              type="number"
-              value={form.cost}
-              onChange={handleChange}
-              placeholder="Cost"
-              required
-            />
-          )}
-
+        {/* CATEGORY */}
+        <label>
+          Category
           <input
-            name="quantity"
+            type="text"
+            name="category"
+            value={formData.category}
+            onChange={handleChange}
+            placeholder="Category"
+          />
+        </label>
+
+        {/* SALE TYPE */}
+        {transactionType === "Sale" && (
+          <label>
+            Sale Type
+            <input
+              type="text"
+              name="sale_type"
+              value={formData.sale_type}
+              onChange={handleChange}
+              placeholder="Retail / Wholesale"
+            />
+          </label>
+        )}
+
+        {/* PRICE */}
+        {transactionType === "Sale" && (
+          <label>
+            Selling Price
+            <input
+              type="number"
+              name="price"
+              value={formData.price}
+              onChange={handleChange}
+              placeholder="Selling Price"
+            />
+          </label>
+        )}
+
+        {/* COST */}
+        {transactionType === "Purchase" && (
+          <label>
+            Cost / Buying Price
+            <input
+              type="number"
+              name="cost"
+              value={formData.cost}
+              onChange={handleChange}
+              placeholder="Cost price"
+            />
+          </label>
+        )}
+
+        {/* QUANTITY */}
+        <label>
+          Quantity
+          <input
             type="number"
-            value={form.quantity}
+            name="quantity"
+            value={formData.quantity}
             onChange={handleChange}
             placeholder="Quantity"
             required
           />
+        </label>
+
+        {/* CURRENT STOCK */}
+        {currentStock !== null && (
+          <p className="stock-info">Current Stock: {currentStock}</p>
+        )}
+
+        {/* DATE */}
+        <label>
+          Date
           <input
-            name="date"
             type="date"
-            value={form.date}
+            name="date"
+            value={formData.date}
             onChange={handleChange}
             required
           />
-          <button type="submit">Add Product</button>
-        </form>
+        </label>
 
-        <h2>Bulk Upload</h2>
-        <form onSubmit={handleUpload}>
-          <input type="file" onChange={(e) => setFile(e.target.files[0])} />
-          <button type="submit">Upload</button>
-        </form>
-
-        <h2>Products</h2>
-        <table className="products-table">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Barcode</th>
-              <th>Category</th>
-              <th>Item Type</th>
-              <th>Sale Type</th>
-              <th>Price</th>
-              <th>Cost</th>
-              <th>Quantity</th>
-              <th>Date</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {Array.isArray(products) &&
-              products.map((p) => (
-                <tr key={p._id}>
-                  <td>{p.product_name}</td>
-                  <td>{p.barcode || "-"}</td>
-                  <td>{p.category}</td>
-                  <td>{p.item_type}</td>
-                  <td>{p.sale_type || "-"}</td>
-                  <td>{p.price}</td>
-                  <td>{p.cost}</td>
-                  <td>{p.quantity}</td>
-                  <td>{new Date(p.date).toLocaleDateString()}</td>
-                  <td>
-                    <button onClick={() => handleDelete(p._id)}>Delete</button>
-                  </td>
-                </tr>
-              ))}
-          </tbody>
-        </table>
-      </div>
+        <button type="submit" disabled={loading}>
+          {loading ? "Saving..." : "Save Transaction"}
+        </button>
+      </form>
     </div>
   );
 };
