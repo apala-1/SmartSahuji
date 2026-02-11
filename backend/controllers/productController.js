@@ -116,7 +116,7 @@ exports.uploadFile = async (req, res) => {
       const workbook = XLSX.readFile(filePath);
       const sheetName = workbook.SheetNames[0];
       const sheet = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
-
+      console.log("USER:", req.user);
       sheet.forEach((row) => {
         products.push({
           product_name: row.product_name || "Unnamed Product",
