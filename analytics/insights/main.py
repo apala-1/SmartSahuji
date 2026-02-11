@@ -588,56 +588,38 @@ def recommendation(
         "bundling": bundling_recommendations
     }
 
+def insights_to_text(insights):
+    best_selling = ", ".join([f"{k} with {v} units sold" for k, v in insights['sales']['best_selling_products'].items()])
+    worst_selling = ", ".join([f"{k} with {v} units sold" for k, v in insights['sales']['worst_selling_products'].items()])
+    peak_days = ", ".join([f"{k} with revenue ${v:.2f}" for k, v in insights['sales']['peak_sales_days'].items()])
+    non_peak_days = ", ".join([f"{k} with revenue ${v:.2f}" for k, v in insights['sales']['non_peak_sales_days'].items()])
+    high_margin = ", ".join([f"{k} margin {v:.2f}" for k, v in insights['items']['high_margin_items'].items()])
+    low_margin = ", ".join([f"{k} margin {v:.2f}" for k, v in insights['items']['low_margin_items'].items()])
+    revenue_trend = insights['revenue_trends']
+
+    text = f"""
+    The sales analysis shows that the best selling products were {best_selling}.
+    The worst performing products were {worst_selling}.
+    The peak sales occurred on {peak_days}, while non-peak days were {non_peak_days}.
+    The overall revenue trend is {revenue_trend}.
+    High margin products include {high_margin}.
+    Low margin products include {low_margin}.
+    """
+    return text
+
 @app.get("/summarize_insights")
-def summarize_insights(
-    period: str = "weekly",
-    category: str = None,
-    item_type: str = None
-):
-    # Get insights from your existing /insights function
+def summarize_insights(period: str = "weekly", category: str = None, item_type: str = None):
+    # 1️⃣ Get insights from existing function
     data = insights(period=period, category=category, item_type=item_type)
 
-    # Convert JSON to readable text
-    text = ""
+    # 2️⃣ Convert JSON insights → plain text for model
+    text = insights_to_text(data)
 
-    # SALES
-    sales = data["sales"]
-    text += "Sales insights:\n"
-    if sales["best_selling_products"]:
-        text += "- Best selling products: " + ", ".join(
-            [f"{k} ({v} units)" for k, v in sales["best_selling_products"].items()]
-        ) + "\n"
+    # 3️⃣ Generate summary paragraph
+    summary_paragraph = summarizer.summarize_text(text, max_length=150, min_length=60)
 
-    if sales["worst_selling_products"]:
-        text += "- Worst selling products: " + ", ".join(
-            [f"{k} ({v} units)" for k, v in sales["worst_selling_products"].items()]
-        ) + "\n"
-
-    if sales["peak_sales_days"]:
-        text += "- Peak sales days: " + ", ".join(
-            [f"{k} (${v:.2f})" for k, v in sales["peak_sales_days"].items()]
-        ) + "\n"
-
-    if sales["non_peak_sales_days"]:
-        text += "- Non-peak sales days: " + ", ".join(
-            [f"{k} (${v:.2f})" for k, v in sales["non_peak_sales_days"].items()]
-        ) + "\n"
-
-    # REVENUE
-    text += f"- Revenue trend: {data['revenue_trends']}\n"
-
-    # ITEMS
-    items = data["items"]
-    if items["high_margin_items"]:
-        text += "- High margin items: " + ", ".join(
-            [f"{k} ({v:.2f})" for k, v in items["high_margin_items"].items()]
-        ) + "\n"
-
-    if items["low_margin_items"]:
-        text += "- Low margin items: " + ", ".join(
-            [f"{k} ({v:.2f})" for k, v in items["low_margin_items"].items()]
-        ) + "\n"
-
-    # Use summarizer
-    summary = summarizer.summarize_text(text)
-    return {"summary": summary, "raw_text": text}
+    # 4️⃣ Return as JSON
+    return {
+        "summary": summary_paragraph,
+        "raw_text": text
+    }
