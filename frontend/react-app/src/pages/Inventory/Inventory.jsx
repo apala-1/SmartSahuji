@@ -2,11 +2,14 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import * as XLSX from "xlsx";
 import "../../styles/Inventory.css";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const ITEMS_PER_PAGE = 10;
 
 const InventoryPage = () => {
   const token = localStorage.getItem("token");
+
   const [inventory, setInventory] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -20,66 +23,44 @@ const InventoryPage = () => {
     itemType: "",
     dateBought: "",
     status: "Active",
-    lastBoughtQty: "",
     sku: "",
     minStock: "",
     reorderQty: "",
     description: "",
     _id: null,
   });
-
   const [previewData, setPreviewData] = useState([]);
   const [showPreview, setShowPreview] = useState(false);
 
-  // Fetch all inventory
+  const api = axios.create({
+    baseURL: "http://localhost:5000/api/inventory",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  // ==============================
+  // Fetch inventory
+  // ==============================
   const fetchInventory = async () => {
     try {
-      const res = await axios.get("http://localhost:5000/api/inventory", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setInventory(res.data.inventory);
+      const res = await api.get("/");
+      setInventory(res.data.inventory || []);
     } catch (err) {
       console.error(err);
-      alert("Failed to fetch inventory");
+      toast.error("Failed to fetch inventory");
     }
   };
 
   useEffect(() => {
     fetchInventory();
+    // eslint-disable-next-line
   }, []);
 
-  // Form change
+  // ==============================
+  // Form handlers
+  // ==============================
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
-  };
-
-  // Add / Update
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      if (form._id) {
-        const res = await axios.put(
-          `http://localhost:5000/api/inventory/${form._id}`,
-          form,
-          { headers: { Authorization: `Bearer ${token}` } },
-        );
-        alert(res.data.message);
-      } else {
-        const res = await axios.post(
-          "http://localhost:5000/api/inventory",
-          form,
-          { headers: { Authorization: `Bearer ${token}` } },
-        );
-        alert(res.data.message);
-      }
-      resetForm();
-      fetchInventory();
-      setCurrentPage(1);
-    } catch (err) {
-      console.error(err);
-      alert(err.response?.data?.error || "Failed to save inventory");
-    }
   };
 
   const resetForm = () => {
@@ -93,7 +74,6 @@ const InventoryPage = () => {
       itemType: "",
       dateBought: "",
       status: "Active",
-      lastBoughtQty: "",
       sku: "",
       minStock: "",
       reorderQty: "",
@@ -102,7 +82,44 @@ const InventoryPage = () => {
     });
   };
 
-  // Edit
+  // ==============================
+  // Add / Update Inventory
+  // ==============================
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!form.name || !form.quantityBought) {
+      return toast.warning("Please provide name and quantity bought");
+    }
+
+    const payload = {
+      ...form,
+      buyingPrice: Number(form.buyingPrice) || 0,
+      sellingPrice: Number(form.sellingPrice) || 0,
+      quantityBought: Number(form.quantityBought) || 0,
+      currentStock:
+        Number(form.currentStock) || Number(form.quantityBought) || 0,
+      minStock: Number(form.minStock) || 0,
+      reorderQty: Number(form.reorderQty) || 0,
+    };
+
+    try {
+      const res = form._id
+        ? await api.put(`/${form._id}`, payload)
+        : await api.post("/", payload);
+
+      toast.success(res.data.message);
+      resetForm();
+      fetchInventory();
+      setCurrentPage(1);
+    } catch (err) {
+      console.error(err);
+      toast.error(err.response?.data?.error || "Failed to save inventory");
+    }
+  };
+
+  // ==============================
+  // Edit / Delete
+  // ==============================
   const handleEdit = (item) => {
     setForm({
       ...item,
@@ -110,29 +127,24 @@ const InventoryPage = () => {
     });
   };
 
-  // Delete
   const handleDelete = async (id) => {
     if (!window.confirm("Are you sure you want to delete this item?")) return;
     try {
-      const res = await axios.delete(
-        `http://localhost:5000/api/inventory/${id}`,
-        { headers: { Authorization: `Bearer ${token}` } },
-      );
-      alert(res.data.message);
+      const res = await api.delete(`/${id}`);
+      toast.success(res.data.message);
       fetchInventory();
     } catch (err) {
       console.error(err);
-      alert("Failed to delete item");
+      toast.error("Failed to delete item");
     }
   };
 
+  // ==============================
   // Export to Excel
+  // ==============================
   const handleExport = async () => {
     try {
-      const res = await axios.get(
-        "http://localhost:5000/api/inventory/export/excel",
-        { headers: { Authorization: `Bearer ${token}` }, responseType: "blob" },
-      );
+      const res = await api.get("/export/excel", { responseType: "blob" });
       const url = window.URL.createObjectURL(new Blob([res.data]));
       const link = document.createElement("a");
       link.href = url;
@@ -140,63 +152,71 @@ const InventoryPage = () => {
       document.body.appendChild(link);
       link.click();
       link.remove();
+      toast.success("Export successful");
     } catch (err) {
       console.error(err);
-      alert("Export failed");
+      toast.error("Export failed");
     }
   };
 
+  // ==============================
   // Bulk Upload Preview
+  // ==============================
   const handleBulkUploadPreview = (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-      const data = new Uint8Array(evt.target.result);
-      const workbook = XLSX.read(data, { type: "array" });
-      const sheetName = workbook.SheetNames[0];
-      const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
-      setPreviewData(jsonData);
-      setShowPreview(true);
-    };
-    reader.readAsArrayBuffer(file);
+    try {
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        const data = new Uint8Array(evt.target.result);
+        const workbook = XLSX.read(data, { type: "array" });
+        const sheetName = workbook.SheetNames[0];
+        const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
+
+        if (jsonData.length === 0) {
+          return toast.warning("Excel file is empty");
+        }
+
+        setPreviewData(jsonData);
+        setShowPreview(true);
+      };
+      reader.readAsArrayBuffer(file);
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to read Excel file");
+    }
   };
 
   const confirmBulkUpload = async () => {
     const fileInput = document.getElementById("bulk-upload-file");
-    if (!fileInput.files[0]) return;
+    if (!fileInput.files[0]) return toast.warning("No file selected");
 
     const formData = new FormData();
     formData.append("file", fileInput.files[0]);
 
     try {
-      const res = await axios.post(
-        "http://localhost:5000/api/inventory/upload/excel",
-        formData,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "multipart/form-data",
-          },
-        },
-      );
-      alert(res.data.message);
+      const res = await api.post("/upload/excel", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      toast.success(res.data.message);
       fetchInventory();
       setShowPreview(false);
       fileInput.value = "";
     } catch (err) {
       console.error(err);
-      alert("Bulk upload failed");
+      toast.error(err.response?.data?.error || "Bulk upload failed");
     }
   };
 
+  // ==============================
   // Search & Pagination
+  // ==============================
   const filteredInventory = inventory.filter(
     (item) =>
-      item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.company.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.itemType.toLowerCase().includes(searchQuery.toLowerCase()),
+      item.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.company?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.itemType?.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   const totalPages = Math.ceil(filteredInventory.length / ITEMS_PER_PAGE);
@@ -207,6 +227,8 @@ const InventoryPage = () => {
 
   return (
     <div className="inventory-page">
+      <ToastContainer position="top-right" autoClose={3000} />
+
       <h2>Inventory Dashboard</h2>
 
       {/* Export / Bulk Upload */}
@@ -251,7 +273,7 @@ const InventoryPage = () => {
         </div>
       )}
 
-      {/* Search bar */}
+      {/* Search Bar */}
       <div className="search-bar">
         <input
           type="text"
@@ -269,90 +291,51 @@ const InventoryPage = () => {
       <form className="inventory-form" onSubmit={handleSubmit}>
         <h3>{form._id ? "Update Inventory" : "Add Inventory"}</h3>
         <div className="form-grid">
-          <input
-            type="text"
-            name="name"
-            placeholder="Product Name"
-            value={form.name}
-            onChange={handleChange}
-            required
-          />
-          <input
-            type="text"
-            name="company"
-            placeholder="Company / Brand"
-            value={form.company}
-            onChange={handleChange}
-          />
-          <input
-            type="number"
-            name="buyingPrice"
-            placeholder="Buying Price"
-            value={form.buyingPrice}
-            onChange={handleChange}
-          />
-          <input
-            type="number"
-            name="sellingPrice"
-            placeholder="Selling Price"
-            value={form.sellingPrice}
-            onChange={handleChange}
-          />
-          <input
-            type="number"
-            name="quantityBought"
-            placeholder="Quantity Bought"
-            value={form.quantityBought}
-            onChange={handleChange}
-          />
-          <input
-            type="number"
-            name="currentStock"
-            placeholder="Current Stock"
-            value={form.currentStock}
-            onChange={handleChange}
-          />
-          <input
-            type="text"
-            name="itemType"
-            placeholder="Category / Type"
-            value={form.itemType}
-            onChange={handleChange}
-          />
-          <input
-            type="date"
-            name="dateBought"
-            value={form.dateBought}
-            onChange={handleChange}
-          />
-          <input
-            type="text"
-            name="sku"
-            placeholder="SKU"
-            value={form.sku}
-            onChange={handleChange}
-          />
-          <input
-            type="number"
-            name="minStock"
-            placeholder="Min Stock"
-            value={form.minStock}
-            onChange={handleChange}
-          />
-          <input
-            type="number"
-            name="reorderQty"
-            placeholder="Reorder Qty"
-            value={form.reorderQty}
-            onChange={handleChange}
-          />
-          <input
-            type="text"
-            name="description"
-            placeholder="Description"
-            value={form.description}
-            onChange={handleChange}
-          />
+          {[
+            {
+              name: "name",
+              placeholder: "Product Name",
+              type: "text",
+              required: true,
+            },
+            { name: "company", placeholder: "Company / Brand", type: "text" },
+            {
+              name: "buyingPrice",
+              placeholder: "Buying Price",
+              type: "number",
+            },
+            {
+              name: "sellingPrice",
+              placeholder: "Selling Price",
+              type: "number",
+            },
+            {
+              name: "quantityBought",
+              placeholder: "Quantity Bought",
+              type: "number",
+            },
+            {
+              name: "currentStock",
+              placeholder: "Current Stock",
+              type: "number",
+            },
+            { name: "itemType", placeholder: "Category / Type", type: "text" },
+            { name: "dateBought", placeholder: "Date Bought", type: "date" },
+            { name: "sku", placeholder: "SKU", type: "text" },
+            { name: "minStock", placeholder: "Min Stock", type: "number" },
+            { name: "reorderQty", placeholder: "Reorder Qty", type: "number" },
+            { name: "description", placeholder: "Description", type: "text" },
+          ].map((field) => (
+            <input
+              key={field.name}
+              type={field.type}
+              name={field.name}
+              placeholder={field.placeholder}
+              value={form[field.name]}
+              onChange={handleChange}
+              required={field.required || false}
+            />
+          ))}
         </div>
         <button type="submit">{form._id ? "Update Item" : "Add Item"}</button>
       </form>
