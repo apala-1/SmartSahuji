@@ -3,12 +3,16 @@ const Inventory = require("../models/InventoryModel");
 const xlsx = require("xlsx");
 const fs = require("fs");
 
+/*
+  Auth middleware sets: req.user = { id: "...mongoUserId..." }
+*/
+
 // =============================
 // EXPORT INVENTORY TO EXCEL
 // =============================
 exports.exportInventory = async (req, res) => {
   try {
-    const inventory = await Inventory.find();
+    const inventory = await Inventory.find({ user: req.user.id });
 
     const data = inventory.map((item) => ({
       Name: item.name,
@@ -18,7 +22,9 @@ exports.exportInventory = async (req, res) => {
       QuantityBought: item.quantityBought,
       CurrentStock: item.currentStock,
       Category: item.itemType,
-      DateBought: item.dateBought ? item.dateBought.toISOString().slice(0, 10) : "",
+      DateBought: item.dateBought
+        ? item.dateBought.toISOString().slice(0, 10)
+        : "",
       SKU: item.sku,
       MinStock: item.minStock,
       ReorderQty: item.reorderQty,
@@ -30,13 +36,10 @@ exports.exportInventory = async (req, res) => {
     const wb = xlsx.utils.book_new();
     xlsx.utils.book_append_sheet(wb, ws, "Inventory");
 
-    const filePath = `inventory_export_${Date.now()}.xlsx`;
+    const filePath = `inventory_${req.user.id}_${Date.now()}.xlsx`;
     xlsx.writeFile(wb, filePath);
 
-    res.download(filePath, (err) => {
-      if (err) console.error(err);
-      fs.unlinkSync(filePath);
-    });
+    res.download(filePath, () => fs.unlinkSync(filePath));
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Failed to export inventory" });
@@ -44,17 +47,18 @@ exports.exportInventory = async (req, res) => {
 };
 
 // =============================
-// BULK UPLOAD INVENTORY FROM EXCEL
+// BULK UPLOAD INVENTORY
 // =============================
 exports.bulkUploadInventory = async (req, res) => {
   try {
-    if (!req.file) return res.status(400).json({ error: "No file uploaded" });
+    if (!req.file)
+      return res.status(400).json({ error: "No file uploaded" });
 
     const workbook = xlsx.readFile(req.file.path);
     const sheetName = workbook.SheetNames[0];
-    const data = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
+    const rows = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
 
-    for (let row of data) {
+    for (const row of rows) {
       const {
         Name,
         Company,
@@ -71,41 +75,52 @@ exports.bulkUploadInventory = async (req, res) => {
         Status,
       } = row;
 
-      let existingInventory = await Inventory.findOne({
+      const existingInventory = await Inventory.findOne({
+        user: req.user.id,
         name: Name,
         company: Company,
         sku: SKU,
       });
 
+      const qty = Number(QuantityBought) || 0;
+
       if (existingInventory) {
-        existingInventory.quantityBought += Number(QuantityBought) || 0;
-        existingInventory.currentStock += Number(CurrentStock) || 0;
-        existingInventory.buyingPrice = BuyingPrice || existingInventory.buyingPrice;
-        existingInventory.sellingPrice = SellingPrice || existingInventory.sellingPrice;
-        existingInventory.dateBought = DateBought || existingInventory.dateBought;
+        existingInventory.quantityBought += qty;
+        existingInventory.currentStock += qty;
+        existingInventory.lastBoughtQty = qty;
+        existingInventory.buyingPrice =
+          Number(BuyingPrice) || existingInventory.buyingPrice;
+        existingInventory.sellingPrice =
+          Number(SellingPrice) || existingInventory.sellingPrice;
+        existingInventory.dateBought = DateBought
+          ? new Date(DateBought)
+          : existingInventory.dateBought;
         existingInventory.status = Status || existingInventory.status;
-        existingInventory.minStock = MinStock || existingInventory.minStock;
-        existingInventory.reorderQty = ReorderQty || existingInventory.reorderQty;
+        existingInventory.minStock =
+          Number(MinStock) || existingInventory.minStock;
+        existingInventory.reorderQty =
+          Number(ReorderQty) || existingInventory.reorderQty;
         existingInventory.description = Description || existingInventory.description;
+
         await existingInventory.save();
       } else {
-        const newInventory = new Inventory({
+        await Inventory.create({
+          user: req.user.id,
           name: Name,
           company: Company,
-          buyingPrice: BuyingPrice,
-          sellingPrice: SellingPrice,
-          quantityBought: QuantityBought,
-          currentStock: CurrentStock || QuantityBought,
-          lastBoughtQty: QuantityBought,
+          buyingPrice: Number(BuyingPrice) || 0,
+          sellingPrice: Number(SellingPrice) || 0,
+          quantityBought: qty,
+          currentStock: Number(CurrentStock) || qty,
+          lastBoughtQty: qty,
           itemType: Category,
-          dateBought: DateBought,
+          dateBought: DateBought ? new Date(DateBought) : Date.now(),
           status: Status || "Active",
           sku: SKU,
-          minStock: MinStock,
-          reorderQty: ReorderQty,
+          minStock: Number(MinStock) || 0,
+          reorderQty: Number(ReorderQty) || 0,
           description: Description,
         });
-        await newInventory.save();
       }
     }
 
@@ -125,100 +140,72 @@ exports.addInventory = async (req, res) => {
     const {
       name,
       company,
-      buyingPrice,
-      sellingPrice,
+      sku,
       quantityBought,
       currentStock,
+      buyingPrice,
+      sellingPrice,
       itemType,
       dateBought,
       status,
-      lastBoughtQty,
       supplierName,
       supplierContact,
-      sku,
       minStock,
       reorderQty,
       description,
     } = req.body;
 
-    let existingInventory = await Inventory.findOne({ name, company, sku });
+    const qty = Number(quantityBought) || 0;
+
+    let existingInventory = await Inventory.findOne({
+      user: req.user.id,
+      name,
+      company,
+      sku,
+    });
 
     if (existingInventory) {
-      existingInventory.quantityBought += quantityBought;
-      existingInventory.currentStock += quantityBought;
-      existingInventory.lastBoughtQty = quantityBought;
-      existingInventory.buyingPrice = buyingPrice || existingInventory.buyingPrice;
-      existingInventory.sellingPrice = sellingPrice || existingInventory.sellingPrice;
-      existingInventory.dateBought = dateBought || existingInventory.dateBought;
+      existingInventory.quantityBought += qty;
+      existingInventory.currentStock += qty;
+      existingInventory.lastBoughtQty = qty;
+      existingInventory.buyingPrice = Number(buyingPrice) || existingInventory.buyingPrice;
+      existingInventory.sellingPrice = Number(sellingPrice) || existingInventory.sellingPrice;
+      existingInventory.dateBought = dateBought ? new Date(dateBought) : existingInventory.dateBought;
       existingInventory.status = status || existingInventory.status;
       existingInventory.supplierName = supplierName || existingInventory.supplierName;
       existingInventory.supplierContact = supplierContact || existingInventory.supplierContact;
-      existingInventory.minStock = minStock || existingInventory.minStock;
-      existingInventory.reorderQty = reorderQty || existingInventory.reorderQty;
+      existingInventory.minStock = Number(minStock) || existingInventory.minStock;
+      existingInventory.reorderQty = Number(reorderQty) || existingInventory.reorderQty;
       existingInventory.description = description || existingInventory.description;
 
       await existingInventory.save();
       return res.json({ message: "Stock updated successfully", inventory: existingInventory });
     }
 
-    const newInventory = new Inventory({
+    const newInventory = await Inventory.create({
+      user: req.user.id,
       name,
       company,
-      buyingPrice,
-      sellingPrice,
-      quantityBought,
-      currentStock: currentStock || quantityBought,
-      lastBoughtQty: quantityBought,
+      sku,
+      quantityBought: qty,
+      currentStock: Number(currentStock) || qty,
+      lastBoughtQty: qty,
+      buyingPrice: Number(buyingPrice) || 0,
+      sellingPrice: Number(sellingPrice) || 0,
       itemType,
-      dateBought,
+      dateBought: dateBought ? new Date(dateBought) : Date.now(),
       status: status || "Active",
       supplierName,
       supplierContact,
-      sku,
-      minStock,
-      reorderQty,
+      minStock: Number(minStock) || 0,
+      reorderQty: Number(reorderQty) || 0,
       description,
     });
 
-    await newInventory.save();
     res.json({ message: "Stock added successfully", inventory: newInventory });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Failed to add stock" });
-  }
-};
-
-// =============================
-// GET ALL INVENTORY
-// =============================
-exports.getAllInventory = async (req, res) => {
-  try {
-    const inventory = await Inventory.find().sort({ dateBought: -1 });
-    res.json({ inventory });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Failed to fetch inventory" });
-  }
-};
-
-// =============================
-// GET INVENTORY BY ID
-// =============================
-exports.getInventoryById = async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ error: "Invalid inventory ID" });
-    }
-
-    const item = await Inventory.findById(id);
-    if (!item) return res.status(404).json({ error: "Item not found" });
-
-    res.json({ item });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Failed to fetch item" });
   }
 };
 
@@ -230,7 +217,12 @@ exports.updateInventory = async (req, res) => {
     const { id } = req.params;
     const updates = req.body;
 
-    const item = await Inventory.findByIdAndUpdate(id, updates, { new: true });
+    const item = await Inventory.findOneAndUpdate(
+      { _id: id, user: req.user.id },
+      updates,
+      { new: true }
+    );
+
     if (!item) return res.status(404).json({ error: "Item not found" });
 
     res.json({ message: "Item updated successfully", item });
@@ -246,7 +238,8 @@ exports.updateInventory = async (req, res) => {
 exports.deleteInventory = async (req, res) => {
   try {
     const { id } = req.params;
-    const item = await Inventory.findByIdAndDelete(id);
+
+    const item = await Inventory.findOneAndDelete({ _id: id, user: req.user.id });
     if (!item) return res.status(404).json({ error: "Item not found" });
 
     res.json({ message: "Stock deleted successfully" });
@@ -257,12 +250,47 @@ exports.deleteInventory = async (req, res) => {
 };
 
 // =============================
+// GET ALL INVENTORY
+// =============================
+exports.getAllInventory = async (req, res) => {
+  try {
+    const inventory = await Inventory.find({ user: req.user.id }).sort({ dateBought: -1 });
+    res.json({ inventory });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to fetch inventory" });
+  }
+};
+
+// =============================
+// GET INVENTORY BY ID
+// =============================
+exports.getInventoryById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id))
+      return res.status(400).json({ error: "Invalid inventory ID" });
+
+    const item = await Inventory.findOne({ _id: id, user: req.user.id });
+    if (!item) return res.status(404).json({ error: "Item not found" });
+
+    res.json({ item });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to fetch item" });
+  }
+};
+
+// =============================
 // SEARCH INVENTORY
 // =============================
 exports.searchInventory = async (req, res) => {
   try {
     const { query } = req.query;
+
     const items = await Inventory.find({
+      user: req.user.id,
       $or: [
         { name: { $regex: query, $options: "i" } },
         { company: { $regex: query, $options: "i" } },
