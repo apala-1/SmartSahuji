@@ -9,6 +9,11 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from statsmodels.tsa.holtwinters import ExponentialSmoothing
 print("🔥 RUNNING INSIGHTS MAIN.PY 🔥")
+from summarizer import InsightsSummarizer
+
+# Initialize summarizer once
+summarizer = InsightsSummarizer()
+
 # ==============================
 # LOAD ENV
 # ==============================
@@ -582,3 +587,57 @@ def recommendation(
         "pricing": pricing_recommendations,
         "bundling": bundling_recommendations
     }
+
+@app.get("/summarize_insights")
+def summarize_insights(
+    period: str = "weekly",
+    category: str = None,
+    item_type: str = None
+):
+    # Get insights from your existing /insights function
+    data = insights(period=period, category=category, item_type=item_type)
+
+    # Convert JSON to readable text
+    text = ""
+
+    # SALES
+    sales = data["sales"]
+    text += "Sales insights:\n"
+    if sales["best_selling_products"]:
+        text += "- Best selling products: " + ", ".join(
+            [f"{k} ({v} units)" for k, v in sales["best_selling_products"].items()]
+        ) + "\n"
+
+    if sales["worst_selling_products"]:
+        text += "- Worst selling products: " + ", ".join(
+            [f"{k} ({v} units)" for k, v in sales["worst_selling_products"].items()]
+        ) + "\n"
+
+    if sales["peak_sales_days"]:
+        text += "- Peak sales days: " + ", ".join(
+            [f"{k} (${v:.2f})" for k, v in sales["peak_sales_days"].items()]
+        ) + "\n"
+
+    if sales["non_peak_sales_days"]:
+        text += "- Non-peak sales days: " + ", ".join(
+            [f"{k} (${v:.2f})" for k, v in sales["non_peak_sales_days"].items()]
+        ) + "\n"
+
+    # REVENUE
+    text += f"- Revenue trend: {data['revenue_trends']}\n"
+
+    # ITEMS
+    items = data["items"]
+    if items["high_margin_items"]:
+        text += "- High margin items: " + ", ".join(
+            [f"{k} ({v:.2f})" for k, v in items["high_margin_items"].items()]
+        ) + "\n"
+
+    if items["low_margin_items"]:
+        text += "- Low margin items: " + ", ".join(
+            [f"{k} ({v:.2f})" for k, v in items["low_margin_items"].items()]
+        ) + "\n"
+
+    # Use summarizer
+    summary = summarizer.summarize_text(text)
+    return {"summary": summary, "raw_text": text}
