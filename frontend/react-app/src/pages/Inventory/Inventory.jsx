@@ -1,10 +1,14 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import "../../styles/Inventory.css";
 
 const Inventory = () => {
   const [inventory, setInventory] = useState([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [file, setFile] = useState(null);
+
   const [form, setForm] = useState({
+    _id: null,
     name: "",
     company: "",
     barcode: "",
@@ -12,63 +16,38 @@ const Inventory = () => {
     sellingPrice: "",
     quantityBought: "",
     currentStock: "",
-    itemType: "General",
+    category: "General",
+    status: "Active",
+    dateBought: "",
     description: "",
-    _id: null, // for editing
-  });
-  const [searchQuery, setSearchQuery] = useState("");
-  const [file, setFile] = useState(null);
-
-  // Axios instance
-  const axiosInstance = axios.create({
-    baseURL: "http://localhost:5000/api",
+    supplierName: "",
+    supplierContact: "",
   });
 
-  // Request interceptor to add token
-  axiosInstance.interceptors.request.use((config) => {
-    const token = localStorage.getItem("token");
-    if (token) config.headers.Authorization = `Bearer ${token}`;
-    return config;
-  });
+  /* =========================
+     Axios instance
+  ========================= */
+  const axiosInstance = useMemo(() => {
+    const instance = axios.create({
+      baseURL: "http://localhost:5000/api",
+    });
 
-  // Response interceptor to refresh token on 401
-  axiosInstance.interceptors.response.use(
-    (res) => res,
-    async (err) => {
-      const originalReq = err.config;
-      if (err.response && err.response.status === 401 && !originalReq._retry) {
-        originalReq._retry = true;
-        const refreshToken = localStorage.getItem("refreshToken");
-        if (!refreshToken) {
-          alert("Session expired. Please login again.");
-          return Promise.reject(err);
-        }
+    instance.interceptors.request.use((config) => {
+      const token = localStorage.getItem("token");
+      if (token) config.headers.Authorization = `Bearer ${token}`;
+      return config;
+    });
 
-        try {
-          const res = await axios.post(
-            "http://localhost:5000/api/auth/refresh",
-            { token: refreshToken },
-          );
-          localStorage.setItem("token", res.data.token);
-          originalReq.headers.Authorization = `Bearer ${res.data.token}`;
-          return axiosInstance(originalReq);
-        } catch (refreshErr) {
-          alert("Session expired. Please login again.");
-          return Promise.reject(refreshErr);
-        }
-      }
-      return Promise.reject(err);
-    },
-  );
+    return instance;
+  }, []);
 
-  // Fetch inventory
+  /* =========================
+     Fetch inventory
+  ========================= */
   const fetchInventory = async () => {
     try {
       const res = await axiosInstance.get("/inventory");
-      const items = Array.isArray(res.data)
-        ? res.data
-        : res.data.inventory || [];
-      setInventory(items);
+      setInventory(res.data.inventory || []);
     } catch (err) {
       console.error("Fetch inventory error:", err);
       setInventory([]);
@@ -79,162 +58,176 @@ const Inventory = () => {
     fetchInventory();
   }, []);
 
-  // Handle input changes
+  /* =========================
+     Handlers
+  ========================= */
   const handleChange = (e) =>
     setForm({ ...form, [e.target.name]: e.target.value });
 
-  // Auto-fill
+  /* =========================
+     Autofill (barcode / name)
+  ========================= */
   const handleAutofill = async (e) => {
-    const value = e.target.value;
-    if (!value) return;
+    const query = e.target.value;
+    if (!query) return;
+
     try {
-      const res = await axiosInstance.get(`/inventory/autofill?query=${value}`);
-      if (res.data && res.data.product_name) {
-        setForm({
-          ...form,
-          name: res.data.product_name,
-          company: res.data.company,
-          barcode: value,
-          buyingPrice: res.data.buyingPrice,
-          sellingPrice: res.data.sellingPrice,
-          currentStock: res.data.currentStock,
-          itemType: res.data.itemType,
-          _id: res.data._id || null,
-        });
-      }
+      const res = await axiosInstance.get(`/inventory/autofill?query=${query}`);
+
+      if (!res.data || !res.data.product_name) return;
+
+      setForm((prev) => ({
+        ...prev,
+        name: res.data.product_name,
+        company: res.data.company || "",
+        buyingPrice: res.data.buyingPrice || "",
+        sellingPrice: res.data.sellingPrice || "",
+        currentStock: res.data.currentStock || "",
+        category: res.data.category || "General",
+      }));
     } catch (err) {
       console.error("Autofill error:", err);
     }
   };
 
-  // Add / Update inventory
+  /* =========================
+     Add / Update inventory
+  ========================= */
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    const payload = {
+      ...form,
+      buyingPrice: Number(form.buyingPrice),
+      sellingPrice: Number(form.sellingPrice),
+      quantityBought: Number(form.quantityBought),
+      currentStock: Number(form.currentStock),
+    };
+
     try {
       if (form._id) {
-        // Update existing
-        await axiosInstance.put(`/inventory/${form._id}`, form);
-        alert("Inventory updated!");
+        await axiosInstance.put(`/inventory/${form._id}`, payload);
+        alert("Inventory updated");
       } else {
-        // Add new
-        await axiosInstance.post("/inventory", form);
-        alert("Inventory added!");
+        await axiosInstance.post("/inventory", payload);
+        alert("Inventory added");
       }
 
-      // Reset form
-      setForm({
-        name: "",
-        company: "",
-        barcode: "",
-        buyingPrice: "",
-        sellingPrice: "",
-        quantityBought: "",
-        currentStock: "",
-        itemType: "General",
-        description: "",
-        _id: null,
-      });
-
+      resetForm();
       fetchInventory();
     } catch (err) {
-      console.error("Add/Update inventory error:", err);
+      console.error(err);
       alert(err.response?.data?.error || "Failed to save inventory");
     }
   };
 
-  // Edit inventory
-  const handleEdit = (item) => {
-    setForm({ ...item });
-  };
+  const resetForm = () =>
+    setForm({
+      _id: null,
+      name: "",
+      company: "",
+      barcode: "",
+      buyingPrice: "",
+      sellingPrice: "",
+      quantityBought: "",
+      currentStock: "",
+      category: "General",
+      status: "Active",
+      dateBought: "",
+      description: "",
+      supplierName: "",
+      supplierContact: "",
+    });
 
-  // Delete inventory
+  /* =========================
+     Edit / Delete
+  ========================= */
+  const handleEdit = (item) => setForm({ ...item });
+
   const handleDelete = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this item?")) return;
+    if (!window.confirm("Delete this item?")) return;
     try {
       await axiosInstance.delete(`/inventory/${id}`);
-      alert("Item deleted!");
       fetchInventory();
     } catch (err) {
-      console.error("Delete error:", err);
-      alert(err.response?.data?.error || "Failed to delete item");
+      alert("Failed to delete");
     }
   };
 
-  // Search inventory
+  /* =========================
+     Search
+  ========================= */
   const handleSearch = async (e) => {
     e.preventDefault();
     try {
       const res = await axiosInstance.get(
         `/inventory/search?query=${searchQuery}`,
       );
-      const items = Array.isArray(res.data) ? res.data : res.data.items || [];
-      setInventory(items);
+      setInventory(res.data.items || []);
     } catch (err) {
-      console.error("Search error:", err);
+      console.error(err);
     }
   };
 
-  // Export inventory
+  /* =========================
+     Export
+  ========================= */
   const handleExport = async () => {
     try {
       const res = await axiosInstance.get("/inventory/export/excel", {
         responseType: "blob",
       });
-      const url = window.URL.createObjectURL(new Blob([res.data]));
+
+      const url = window.URL.createObjectURL(res.data);
       const link = document.createElement("a");
       link.href = url;
-      link.setAttribute("download", `inventory.xlsx`);
-      document.body.appendChild(link);
+      link.download = "inventory.xlsx";
       link.click();
-      link.remove();
-    } catch (err) {
-      console.error("Export error:", err);
-      alert("Failed to export inventory");
+    } catch {
+      alert("Export failed");
     }
   };
 
-  // Bulk upload
-  const handleFileChange = (e) => setFile(e.target.files[0]);
+  /* =========================
+     Bulk upload
+  ========================= */
   const handleBulkUpload = async () => {
-    if (!file) return alert("Select a file first!");
-    const formData = new FormData();
-    formData.append("file", file);
+    if (!file) return alert("Select a file");
+
+    const fd = new FormData();
+    fd.append("file", file);
+
     try {
-      await axiosInstance.post("/inventory/upload/excel", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-      alert("Bulk upload successful!");
-      setFile(null);
+      await axiosInstance.post("/inventory/upload/excel", fd);
       fetchInventory();
-    } catch (err) {
-      console.error("Bulk upload error:", err);
-      alert(err.response?.data?.error || "Bulk upload failed");
+      setFile(null);
+    } catch {
+      alert("Bulk upload failed");
     }
   };
 
+  /* =========================
+     Render
+  ========================= */
   return (
     <div className="inventory-page">
       <h2>Inventory Management</h2>
 
-      {/* Search */}
-      <form className="search-form" onSubmit={handleSearch}>
+      <form onSubmit={handleSearch} className="search-form">
         <input
-          type="text"
-          placeholder="Search by name, company or category"
+          placeholder="Search name / company / category"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
         />
-        <button type="submit">Search</button>
+        <button>Search</button>
       </form>
 
-      {/* Export & Bulk Upload */}
       <div className="inventory-actions">
-        <button onClick={handleExport}>Export to Excel</button>
-        <input type="file" onChange={handleFileChange} />
+        <button onClick={handleExport}>Export Excel</button>
+        <input type="file" onChange={(e) => setFile(e.target.files[0])} />
         <button onClick={handleBulkUpload}>Bulk Upload</button>
       </div>
 
-      {/* Add / Edit Inventory Form */}
       <form className="inventory-form" onSubmit={handleSubmit}>
         <input
           name="name"
@@ -246,10 +239,9 @@ const Inventory = () => {
         />
         <input
           name="company"
-          placeholder="Company/Brand"
+          placeholder="Company"
           value={form.company}
           onChange={handleChange}
-          required
         />
         <input
           name="barcode"
@@ -257,7 +249,6 @@ const Inventory = () => {
           value={form.barcode}
           onChange={handleChange}
           onBlur={handleAutofill}
-          required
         />
         <input
           type="number"
@@ -290,56 +281,64 @@ const Inventory = () => {
           onChange={handleChange}
           required
         />
-        <select name="itemType" value={form.itemType} onChange={handleChange}>
-          <option value="General">General</option>
-          <option value="Electronics">Electronics</option>
-          <option value="Food">Food</option>
-          <option value="Clothing">Clothing</option>
+
+        <select name="category" value={form.category} onChange={handleChange}>
+          <option>General</option>
+          <option>Electronics</option>
+          <option>Groceries</option>
+          <option>Clothing</option>
+          <option>Accessories</option>
         </select>
+
+        <input
+          name="supplierName"
+          placeholder="Supplier Name"
+          value={form.supplierName}
+          onChange={handleChange}
+        />
+        <input
+          name="supplierContact"
+          placeholder="Supplier Contact"
+          value={form.supplierContact}
+          onChange={handleChange}
+        />
         <input
           name="description"
           placeholder="Description"
           value={form.description}
           onChange={handleChange}
         />
+
         <button type="submit">{form._id ? "Update" : "Add"} Inventory</button>
       </form>
 
-      {/* Inventory Table */}
       <table className="inventory-table">
         <thead>
           <tr>
             <th>Name</th>
             <th>Company</th>
-            <th>Barcode</th>
+            <th>Stock</th>
             <th>Buying</th>
             <th>Selling</th>
-            <th>Qty Bought</th>
-            <th>Current Stock</th>
             <th>Category</th>
-            <th>Description</th>
             <th>Actions</th>
           </tr>
         </thead>
         <tbody>
-          {Array.isArray(inventory) &&
-            inventory.map((item) => (
-              <tr key={item._id}>
-                <td>{item.name}</td>
-                <td>{item.company}</td>
-                <td>{item.barcode}</td>
-                <td>{item.buyingPrice}</td>
-                <td>{item.sellingPrice}</td>
-                <td>{item.quantityBought}</td>
-                <td>{item.currentStock}</td>
-                <td>{item.itemType}</td>
-                <td>{item.description}</td>
-                <td>
-                  <button onClick={() => handleEdit(item)}>Edit</button>
-                  <button onClick={() => handleDelete(item._id)}>Delete</button>
-                </td>
-              </tr>
-            ))}
+          {inventory.map((item) => (
+            <tr key={item._id}>
+              <td>{item.name}</td>
+              <td>{item.company}</td>
+              <td>{item.currentStock}</td>
+              <td>{item.buyingPrice}</td>
+              <td>{item.sellingPrice}</td>
+              <td>{item.category}</td>
+              <td>
+                <button onClick={() => handleEdit(item)}>Edit</button>
+                <button onClick={() => handleDelete(item._id)}>Delete</button>
+              </td>
+            </tr>
+          ))}
         </tbody>
       </table>
     </div>

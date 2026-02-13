@@ -7,14 +7,13 @@ const fs = require("fs");
 // HELPER: Create or Update Inventory
 // =============================
 const createOrUpdateInventory = async (userId, data) => {
-  const { name, company, barcode, quantityBought = 0 } = data;
+  const { barcode } = data;
 
-  const existing = await Inventory.findOne({ user: userId, name, company, barcode });
+  const existing = await Inventory.findOne({ user: userId, barcode });
 
   if (existing) {
-    existing.quantityBought += Number(quantityBought);
-    existing.currentStock += Number(quantityBought);
-    existing.lastBoughtQty = Number(quantityBought);
+    existing.quantityBought += Number(data.quantityBought || 0);
+    existing.currentStock += Number(data.quantityBought || 0);
     Object.assign(existing, data); // update other fields
     await existing.save();
     return existing;
@@ -37,11 +36,13 @@ exports.addInventory = async (req, res) => {
       quantityBought: Number(req.body.quantityBought) || 0,
       currentStock: Number(req.body.currentStock) || 0,
       dateBought: req.body.dateBought ? new Date(req.body.dateBought) : Date.now(),
-      itemType: req.body.itemType || "General",
+      category: req.body.category || "General",
       buyingPrice: Number(req.body.buyingPrice) || 0,
       sellingPrice: Number(req.body.sellingPrice) || 0,
       status: req.body.status || "Active",
       description: req.body.description || "",
+      supplierName: req.body.supplierName || "",
+      supplierContact: req.body.supplierContact || "",
     };
 
     const inventoryItem = await createOrUpdateInventory(req.user.id, itemData);
@@ -137,7 +138,7 @@ exports.searchInventory = async (req, res) => {
       $or: [
         { name: { $regex: query, $options: "i" } },
         { company: { $regex: query, $options: "i" } },
-        { itemType: { $regex: query, $options: "i" } },
+        { category: { $regex: query, $options: "i" } },
       ],
     }).sort({ dateBought: -1 });
 
@@ -158,7 +159,7 @@ exports.autofillInventory = async (req, res) => {
 
     const item = await Inventory.findOne({
       user: req.user.id,
-      $or: [{ name: query }, { barcode: query }],
+      $or: [{ name: { $regex: `^${query}$`, $options: "i" } }, { barcode: query.toUpperCase() }],
     });
 
     if (!item) return res.json({});
@@ -168,7 +169,7 @@ exports.autofillInventory = async (req, res) => {
       sellingPrice: item.sellingPrice,
       currentStock: item.currentStock,
       company: item.company,
-      itemType: item.itemType,
+      category: item.category,
     });
   } catch (err) {
     console.error(err);
@@ -211,11 +212,13 @@ exports.exportInventory = async (req, res) => {
       SellingPrice: item.sellingPrice,
       QuantityBought: item.quantityBought,
       CurrentStock: item.currentStock,
-      Category: item.itemType,
+      Category: item.category,
       DateBought: item.dateBought ? item.dateBought.toISOString().slice(0, 10) : "",
       Barcode: item.barcode,
       Description: item.description,
       Status: item.status,
+      SupplierName: item.supplierName,
+      SupplierContact: item.supplierContact,
     }));
 
     const ws = xlsx.utils.json_to_sheet(data);
@@ -223,9 +226,17 @@ exports.exportInventory = async (req, res) => {
     xlsx.utils.book_append_sheet(wb, ws, "Inventory");
 
     const filePath = `inventory_${req.user.id}_${Date.now()}.xlsx`;
-    xlsx.writeFile(wb, filePath);
-
-    res.download(filePath, () => fs.unlinkSync(filePath));
+    xlsx.writeFile(wb, filePath); 
+    res.download(filePath, (err) => {
+      if (err) {
+        console.error("File download error:", err);
+      }
+      fs
+        .unlink(filePath)
+        .then(() => console.log("Temporary file deleted"))
+        .catch((err) => console.error("Failed to delete temp file:", err));
+    }
+    );
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Failed to export inventory" });
@@ -233,43 +244,46 @@ exports.exportInventory = async (req, res) => {
 };
 
 // =============================
-// BULK UPLOAD INVENTORY
+// BULK UPLOAD INVENTORY FROM EXCEL
 // =============================
 exports.bulkUploadInventory = async (req, res) => {
   try {
-    if (!req.file) return res.status(400).json({ error: "No file uploaded" });
+    if (!req.file) {
+      return res.status(400).json({ error: "No file uploaded" });
+    }
 
     const workbook = xlsx.readFile(req.file.path);
     const sheetName = workbook.SheetNames[0];
-    const rows = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
+    const sheetData = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
 
-    for (const row of rows) {
-      try {
-        const mappedRow = {
-          name: row.Name?.trim(),
-          company: row.Company?.trim(),
-          barcode: row.Barcode?.trim().toUpperCase(),
-          quantityBought: Number(row.QuantityBought) || 0,
-          currentStock: Number(row.CurrentStock) || 0,
-          buyingPrice: Number(row.BuyingPrice) || 0,
-          sellingPrice: Number(row.SellingPrice) || 0,
-          itemType: row.Category || "General",
-          dateBought: row.DateBought ? new Date(row.DateBought) : Date.now(),
-          description: row.Description || "",
-          status: row.Status || "Active",
-        };
+    const results = [];
 
-        if (!mappedRow.name || !mappedRow.company || !mappedRow.barcode) continue;
-        await createOrUpdateInventory(req.user.id, mappedRow);
-      } catch (errRow) {
-        console.error("Skipping row due to error:", row, errRow.message);
-      }
+    for (const row of sheetData) {
+      const itemData = {
+        name: row.Name?.trim(),
+        company: row.Company?.trim(),
+        barcode: row.Barcode?.toString().trim().toUpperCase(),
+        quantityBought: Number(row.QuantityBought) || 0,
+        currentStock: Number(row.CurrentStock) || 0,
+        category: row.Category || "General",
+        buyingPrice: Number(row.BuyingPrice) || 0,
+        sellingPrice: Number(row.SellingPrice) || 0,
+        description: row.Description || "",
+        status: row.Status || "Active",
+      };
+
+      const item = await createOrUpdateInventory(req.user.id, itemData);
+      results.push(item);
     }
 
     fs.unlinkSync(req.file.path);
-    res.json({ message: "Bulk upload successful" });
+
+    res.json({
+      message: "Inventory uploaded successfully",
+      count: results.length,
+    });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Bulk upload failed" });
+    console.error("BULK UPLOAD ERROR:", err);
+    res.status(500).json({ error: "Failed to upload inventory" });
   }
 };

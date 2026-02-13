@@ -4,38 +4,82 @@ const inventoryController = require("../controllers/inventoryController");
 const auth = require("../middleware/authMiddleware");
 const multer = require("multer");
 
-// Configure multer for file uploads
+// Multer config (temp uploads)
 const upload = multer({ dest: "uploads/" });
 
 // =============================
 // INVENTORY ROUTES
 // =============================
 
-// Auto-fill product details (name or SKU)
-router.get("/autofill", auth, inventoryController.autofillInventory);
+// Auto-fill product details (by name or barcode)
+router.get(
+  "/autofill",
+  auth,
+  inventoryController.autofillInventory
+);
 
-// Search inventory by name, company, or type
-router.get("/search", auth, inventoryController.searchInventory);
+// Search inventory
+router.get(
+  "/search",
+  auth,
+  inventoryController.searchInventory
+);
 
 // Export inventory to Excel
-router.get("/export/excel", auth, inventoryController.exportInventory);
+router.get(
+  "/export/excel",
+  auth,
+  inventoryController.exportInventory
+);
 
 // Bulk upload inventory from Excel
-router.post("/upload/excel", auth, upload.single("file"), inventoryController.bulkUploadInventory);
+router.post(
+  "/upload/excel",
+  auth,
+  upload.single("file"),
+  inventoryController.bulkUploadInventory
+);
 
-// Add a new inventory item
-router.post("/", auth, inventoryController.addInventory);
+// Record a sale (decrease stock)
+router.post(
+  "/sale",
+  auth,
+  inventoryController.recordSale
+);
 
-// Get all inventory items
-router.get("/", auth, inventoryController.getAllInventory);
+// Add inventory (create or update by barcode)
+router.post(
+  "/",
+  auth,
+  inventoryController.addInventory
+);
 
-// Get a specific inventory item by ID
-router.get("/:id", auth, inventoryController.getInventoryById);
+// Get all inventory
+router.get(
+  "/",
+  auth,
+  inventoryController.getAllInventory
+);
 
-// Update inventory item by ID
-router.put("/:id", auth, inventoryController.updateInventory);
+// Get inventory by ID
+router.get(
+  "/:id",
+  auth,
+  inventoryController.getInventoryById
+);
 
-// Delete inventory item by ID
-router.delete("/:id", auth, inventoryController.deleteInventory);
+// Update inventory by ID
+router.put(
+  "/:id",
+  auth,
+  inventoryController.updateInventory
+);
+
+// Delete inventory by ID
+router.delete(
+  "/:id",
+  auth,
+  inventoryController.deleteInventory
+);
 
 module.exports = router;

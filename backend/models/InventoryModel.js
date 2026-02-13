@@ -18,7 +18,7 @@ const inventorySchema = new mongoose.Schema(
     quantityBought: { type: Number, required: true },
     currentStock: { type: Number, required: true },
 
-    itemType: {
+    category: {
       type: String,
       enum: ["Electronics", "Groceries", "Clothing", "Accessories", "General"],
       default: "General",
@@ -26,8 +26,6 @@ const inventorySchema = new mongoose.Schema(
 
     dateBought: { type: Date, default: Date.now },
     status: { type: String, default: "Active" },
-
-    lastBoughtQty: { type: Number, default: 0 },
 
     supplierName: { type: String },
     supplierContact: { type: String },
@@ -38,6 +36,6 @@ const inventorySchema = new mongoose.Schema(
 );
 
 // Unique index per user per barcode
-inventorySchema.index({ user: 1, barcode: 1 }, { unique: false });
+inventorySchema.index({ user: 1, barcode: 1 }, { unique: true });
 
 module.exports = mongoose.model("Inventory", inventorySchema);
