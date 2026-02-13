@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import "../../styles/DataEntry.css";
 
 const categories = [
   "Electronics",
@@ -14,7 +15,7 @@ export default function DataEntry() {
     product_name: "",
     barcode: "",
     category: "General",
-    item_type: "Sale", // Sale or Purchase
+    item_type: "Sale",
     sale_type: "Retail",
     price: 0,
     cost: 0,
@@ -24,21 +25,13 @@ export default function DataEntry() {
 
   const [file, setFile] = useState(null);
 
-  // Create axios instance directly here
-  const API = axios.create({
-    baseURL: "http://localhost:5000/api", // adjust if backend runs elsewhere
-  });
-
-  // Attach token if you’re using auth
+  const API = axios.create({ baseURL: "http://localhost:5000/api" });
   API.interceptors.request.use((req) => {
     const token = localStorage.getItem("token");
-    if (token) {
-      req.headers.Authorization = `Bearer ${token}`;
-    }
+    if (token) req.headers.Authorization = `Bearer ${token}`;
     return req;
   });
 
-  // Autofill selling price from inventory when barcode or name changes
   useEffect(() => {
     const fetchInventory = async () => {
       if (!form.product_name && !form.barcode) return;
@@ -56,9 +49,8 @@ export default function DataEntry() {
     fetchInventory();
   }, [form.product_name, form.barcode]);
 
-  const handleChange = (e) => {
+  const handleChange = (e) =>
     setForm({ ...form, [e.target.name]: e.target.value });
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -100,9 +92,9 @@ export default function DataEntry() {
   };
 
   return (
-    <div style={{ maxWidth: "600px", margin: "auto" }}>
+    <div className="data-entry-container">
       <h2>Product Entry</h2>
-      <form onSubmit={handleSubmit}>
+      <form className="data-entry-form" onSubmit={handleSubmit}>
         <input
           name="product_name"
           placeholder="Product Name"
@@ -174,13 +166,15 @@ export default function DataEntry() {
         <button type="submit">Save Transaction</button>
       </form>
 
-      <h2>Bulk Upload</h2>
-      <input
-        type="file"
-        accept=".csv,.xlsx"
-        onChange={(e) => setFile(e.target.files[0])}
-      />
-      <button onClick={handleUpload}>Upload</button>
+      <div className="bulk-upload">
+        <h2>Bulk Upload</h2>
+        <input
+          type="file"
+          accept=".csv,.xlsx"
+          onChange={(e) => setFile(e.target.files[0])}
+        />
+        <button onClick={handleUpload}>Upload</button>
+      </div>
     </div>
   );
 }
