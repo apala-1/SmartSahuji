@@ -35,11 +35,9 @@ function App() {
         <Route path="/data-entry" element={<><UserNavbar /><DataEntry /></>} />
         <Route path="/analytics" element={<><UserNavbar /><Analytics /></>} />
         <Route path="/datasheet" element={<><UserNavbar /><DataSheet /></>} />
-        <Route path="/profile" element={<><ProfilePage></ProfilePage></>}/>
-        
-        {/* Added the missing Inventory route here */}
+        <Route path="/profile" element={<><UserNavbar /><ProfilePage /></>}/>
         <Route path="/inventory" element={<><UserNavbar /><InventoryPage /></>} />
-        <Route path="/sales" element={<SalesHistory />} />
+        <Route path="/sales" element={<><UserNavbar /><SalesHistory /></>} />
 
         <Route path="/forgot-password" element={<ForgotPassword />} />
     <Route path="/reset-password/:token" element={<ResetPassword />} />
