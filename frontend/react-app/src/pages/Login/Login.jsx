@@ -45,7 +45,7 @@ const LoginPage = () => {
           headers: {
             "Content-Type": "application/json",
           },
-        }
+        },
       );
 
       if (!response.data?.token) {
@@ -59,7 +59,7 @@ const LoginPage = () => {
       setError(
         err.response?.data?.error ||
           err.response?.data?.message ||
-          "Invalid email or password"
+          "Invalid email or password",
       );
     } finally {
       setLoading(false);
@@ -68,64 +68,85 @@ const LoginPage = () => {
 
   return (
     <div className="auth-container">
-      <div className="branding-side">
-        <h2 className="welcome-text">WELCOME TO</h2>
-        <div className="logo-circle">
-          <img src={logoImg} alt="SahuJi" />
+      <div className="auth-wrapper">
+        <div className="branding-side">
+          <div className="auth-header">
+            <div className="logo-section">
+              <div className="logo-icon">📊</div>
+              <div className="logo-text">
+                <strong>Smart SahuJi</strong>
+                <small>BUSINESS PLATFORM</small>
+              </div>
+            </div>
+            <nav className="auth-nav">
+              <Link to="/">About Us</Link>
+              <Link to="/">Prices</Link>
+              <Link to="/">Contact</Link>
+              <Link to="/signup">Register</Link>
+            </nav>
+          </div>
+
+          <div className="logo-circle">
+            <img src={logoImg} alt="SahuJi" />
+          </div>
+          <h1 className="brand-name">
+            <span className="smart">smart</span>
+            <span className="sahuji">SahuJi</span>
+          </h1>
+          <p className="brand-description">
+            Discover the new way to manage your inventory, track sales, and grow
+            your business efficiently.
+          </p>
+          <a href="#" className="see-more">
+            See More
+          </a>
         </div>
-        <h1 className="brand-name">
-          <span className="smart">smart</span>{" "}
-          <span className="sahuji">SahuJi</span>
-        </h1>
-      </div>
 
-      <div className="form-side">
-        <div className="form-box">
-          <h2 className="form-title">Login</h2>
+        <div className="form-side">
+          <div className="form-box">
+            <h2 className="form-title">Login to your account</h2>
 
-          {error && <p className="error-text">{error}</p>}
+            {error && <p className="error-text">{error}</p>}
 
-          <div className="input-group">
-            <label>Email :</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              autoComplete="email"
-            />
-          </div>
+            <div className="input-group">
+              <label>Email</label>
+              <input
+                type="email"
+                placeholder="Enter your email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                autoComplete="email"
+                disabled={loading}
+              />
+            </div>
 
-          <div className="input-group">
-            <label>Password :</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              autoComplete="current-password"
-            />
-          </div>
+            <div className="input-group">
+              <label>Password</label>
+              <input
+                type="password"
+                placeholder="Enter your password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete="current-password"
+                disabled={loading}
+              />
+            </div>
 
-          <div className="form-footer">
-            <Link to="/signup">
-              <button type="button" className="new-user-btn">
-                NEW USER?
-              </button>
-            </Link>
-            <Link
-              to="/forgot-password"
-              className="forget-pass"
+            <button
+              className="submit-btn"
+              onClick={handleLogin}
+              disabled={loading}
             >
-              FORGET PASSWORD?
-            </Link>
-          </div>
+              {loading ? "Logging In..." : "Log In"}
+            </button>
 
-          <button
-            className="submit-btn"
-            onClick={handleLogin}
-            disabled={loading}
-          >
-            {loading ? "LOGGING IN..." : "LOGIN"}
-          </button>
+            <p className="bottom-link">
+              Don't have an account?{" "}
+              <Link to="/signup" className="link-text">
+                Sign Up
+              </Link>
+            </p>
+          </div>
         </div>
       </div>
     </div>
