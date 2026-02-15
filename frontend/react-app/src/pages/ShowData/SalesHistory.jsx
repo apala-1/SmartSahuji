@@ -20,7 +20,7 @@ export default function SalesHistory() {
 
     const fetchInventory = async () => {
       try {
-        const res = await fetch("/api/inventory", {
+        const res = await fetch("http://localhost:5000/api/inventory", {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
@@ -74,7 +74,7 @@ export default function SalesHistory() {
 
     const fetchSales = async () => {
       try {
-        const res = await fetch("/api/products", {
+        const res = await fetch("http://localhost:5000/api/products", {
           method: "GET",
           headers: {
             "Content-Type": "application/json",

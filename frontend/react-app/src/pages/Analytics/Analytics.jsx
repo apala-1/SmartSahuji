@@ -57,7 +57,7 @@ export default function Analytics() {
             Comprehensive insights into your business performance
           </p>
         </div>
-        <button className="back-btn" onClick={() => navigate("/sales-history")}>
+        <button className="back-btn" onClick={() => navigate("/sales")}>
           ← Back to History
         </button>
       </div>
