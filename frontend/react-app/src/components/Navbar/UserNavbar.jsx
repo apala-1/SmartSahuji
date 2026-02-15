@@ -15,61 +15,53 @@ function UserNavbar() {
   };
 
   return (
-    <nav className="user-nav">
-      {/* Brand Section */}
-      <div className="user-nav-logo" onClick={() => navigate("/dashboard")}>
-        <div className="logo-container">
-          <img src={logoImg} alt="SahuJi Logo" className="user-nav-img" />
-          <div className="logo-badge">SS</div>
-        </div>
-        <div className="brand-text">
-          <span className="brand-name">Smart</span>
-          <span className="brand-highlight">SahuJi</span>
-        </div>
-      </div>
-
-      {/* Navigation Links */}
-      <div className="user-nav-links">
-        <Link
-          to="/data-entry"
-          className={`nav-link ${isActive("/data-entry") ? "active" : ""}`}
-        >
-          <span className="nav-icon">📝</span>
-          <span className="nav-text">Sales Entry</span>
-        </Link>
-        <Link
-          to="/sales"
-          className={`nav-link ${isActive("/sales") ? "active" : ""}`}
-        >
-          <span className="nav-icon">📊</span>
-          <span className="nav-text">History</span>
-        </Link>
-        <Link
-          to="/analytics"
-          className={`nav-link ${isActive("/analytics") ? "active" : ""}`}
-        >
-          <span className="nav-icon">📈</span>
-          <span className="nav-text">Analytics</span>
-        </Link>
-        <Link
-          to="/inventory"
-          className={`nav-link ${isActive("/inventory") ? "active" : ""}`}
-        >
-          <span className="nav-icon">📦</span>
-          <span className="nav-text">Inventory</span>
-        </Link>
-
-        <div className="nav-divider"></div>
-
-        <div className="user-actions">
-          <Link to="/profile" className="profile-link" title="Profile">
-            <div className="user-avatar">
-              <span>S</span>
+    <nav className="navbar">
+      <div className="navbar-container">
+        {/* Left Side - Logo & Brand */}
+        <div className="navbar-left">
+          <div className="navbar-logo" onClick={() => navigate("/dashboard")}>
+            <img src={logoImg} alt="Logo" className="logo-img" />
+            <div className="logo-text">
+              <span className="brand-main">Smart</span>
+              <span className="brand-sub">Sahuji</span>
             </div>
+          </div>
+        </div>
+
+        {/* Right Side - Navigation, Profile & Logout */}
+        <div className="navbar-right">
+          <div className="navbar-nav">
+            <Link
+              to="/data-entry"
+              className={`nav-link ${isActive("/data-entry") ? "active" : ""}`}
+            >
+              <span className="nav-label">Sales Entry</span>
+            </Link>
+            <Link
+              to="/sales"
+              className={`nav-link ${isActive("/sales") ? "active" : ""}`}
+            >
+              <span className="nav-label">Sales History</span>
+            </Link>
+            <Link
+              to="/analytics"
+              className={`nav-link ${isActive("/analytics") ? "active" : ""}`}
+            >
+              <span className="nav-label"> Sales Analytics</span>
+            </Link>
+            <Link
+              to="/inventory"
+              className={`nav-link ${isActive("/inventory") ? "active" : ""}`}
+            >
+              <span className="nav-label">Inventory</span>
+            </Link>
+          </div>
+
+          <Link to="/profile" className="profile-btn">
+            <div className="avatar">S</div>
           </Link>
-          <button onClick={handleLogout} className="logout-btn" title="Logout">
-            <span className="logout-icon">🚪</span>
-            <span className="logout-text">Logout</span>
+          <button onClick={handleLogout} className="logout-btn">
+            Logout
           </button>
         </div>
       </div>
