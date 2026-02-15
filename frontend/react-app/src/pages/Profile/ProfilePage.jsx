@@ -82,7 +82,9 @@ const ProfilePage = () => {
         });
       } catch (err) {
         console.error("Error fetching profile:", err);
-        showMessage("error", "Failed to load profile");
+        if (!handleTokenExpiration(err)) {
+          showMessage("error", "Failed to load profile");
+        }
       }
     };
 
@@ -94,32 +96,136 @@ const ProfilePage = () => {
     setTimeout(() => setMessage({ type: "", text: "" }), 4000);
   };
 
+  // Handle token expiration
+  const handleTokenExpiration = (err) => {
+    if (err.response?.status === 401 || err.response?.status === 403) {
+      localStorage.removeItem("token");
+      showMessage("error", "Session expired. Please login again.");
+      setTimeout(() => {
+        window.location.href = "/login";
+      }, 1500);
+      return true;
+    }
+    return false;
+  };
+
+  // Validation Functions
+  const validateEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  const validateUsername = (username) => {
+    // Username: 3-20 characters, alphanumeric and underscore only
+    const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
+    return usernameRegex.test(username);
+  };
+
+  const validatePassword = (password) => {
+    // Password: minimum 6 characters
+    return password.length >= 6;
+  };
+
+  const validatePhone = (phone) => {
+    // Phone: 7-15 digits
+    const phoneRegex = /^[0-9]{7,15}$/;
+    return phoneRegex.test(phone);
+  };
+
+  const validateAccountForm = () => {
+    // Username validation
+    if (!accountForm.username || !accountForm.username.trim()) {
+      showMessage("error", "Username is required");
+      return false;
+    }
+    if (!validateUsername(accountForm.username)) {
+      showMessage(
+        "error",
+        "Username must be 3-20 characters and contain only letters, numbers, and underscores",
+      );
+      return false;
+    }
+
+    // Email validation
+    if (!accountForm.email || !accountForm.email.trim()) {
+      showMessage("error", "Email is required");
+      return false;
+    }
+    if (!validateEmail(accountForm.email)) {
+      showMessage("error", "Please enter a valid email address");
+      return false;
+    }
+
+    // Password validation (if changing password)
+    if (accountForm.newPassword || accountForm.confirmPassword) {
+      if (!accountForm.currentPassword) {
+        showMessage("error", "Current password is required to change password");
+        return false;
+      }
+      if (!accountForm.newPassword) {
+        showMessage("error", "New password is required");
+        return false;
+      }
+      if (!validatePassword(accountForm.newPassword)) {
+        showMessage("error", "Password must be at least 6 characters long");
+        return false;
+      }
+      if (accountForm.newPassword !== accountForm.confirmPassword) {
+        showMessage("error", "Passwords do not match");
+        return false;
+      }
+    }
+
+    return true;
+  };
+
+  const validateBusinessSettings = () => {
+    // Shop name validation
+    if (businessSettings.shopName && businessSettings.shopName.trim()) {
+      if (businessSettings.shopName.trim().length < 2) {
+        showMessage("error", "Shop name must be at least 2 characters long");
+        return false;
+      }
+      if (businessSettings.shopName.length > 100) {
+        showMessage("error", "Shop name must not exceed 100 characters");
+        return false;
+      }
+    }
+
+    // Phone validation
+    if (businessSettings.phone && businessSettings.phone.trim()) {
+      if (!validatePhone(businessSettings.phone)) {
+        showMessage("error", "Please enter a valid phone number (7-15 digits)");
+        return false;
+      }
+    }
+
+    // Address validation
+    if (businessSettings.address && businessSettings.address.trim()) {
+      if (businessSettings.address.length > 500) {
+        showMessage("error", "Address must not exceed 500 characters");
+        return false;
+      }
+    }
+
+    return true;
+  };
+
   // Update account info
   const handleUpdateAccount = async () => {
-    if (!accountForm.username || !accountForm.email) {
-      showMessage("error", "Username and email are required");
+    if (!validateAccountForm()) {
+      setLoading(false);
       return;
     }
 
     setLoading(true);
     try {
       const payload = {
-        username: accountForm.username,
-        email: accountForm.email,
+        username: accountForm.username.trim(),
+        email: accountForm.email.trim(),
       };
 
       if (accountForm.newPassword) {
-        if (accountForm.newPassword !== accountForm.confirmPassword) {
-          showMessage("error", "Passwords do not match");
-          return;
-        }
-        if (!accountForm.currentPassword) {
-          showMessage(
-            "error",
-            "Current password is required to change password",
-          );
-          return;
-        }
         payload.currentPassword = accountForm.currentPassword;
         payload.password = accountForm.newPassword;
       }
@@ -149,6 +255,7 @@ const ProfilePage = () => {
         res.data.message || "Profile updated successfully",
       );
     } catch (err) {
+      if (handleTokenExpiration(err)) return;
       showMessage(
         "error",
         err.response?.data?.error || "Failed to update profile",
@@ -160,6 +267,9 @@ const ProfilePage = () => {
 
   // Update business settings
   const handleUpdateBusinessSettings = async () => {
+    if (!validateBusinessSettings()) {
+      return;
+    }
     setLoading(true);
     try {
       showMessage("success", "Business settings updated successfully");
@@ -204,6 +314,7 @@ const ProfilePage = () => {
         window.location.href = "/login";
       }, 2000);
     } catch (err) {
+      if (handleTokenExpiration(err)) return;
       showMessage(
         "error",
         err.response?.data?.error || "Failed to delete account",
