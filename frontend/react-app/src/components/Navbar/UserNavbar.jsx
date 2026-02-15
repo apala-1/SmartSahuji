@@ -22,7 +22,7 @@ function UserNavbar() {
           Sales Entry
         </Link>
         <Link to="/sales" className="user-nav-item">
-          Sales Data
+          Sales History
         </Link>
         <Link to="/analytics" className="user-nav-item">
           Analytics
@@ -31,14 +31,9 @@ function UserNavbar() {
           Inventory
         </Link>
 
-        {/* NEW LINK ADDED HERE */}
-        <Link to="/sales" className="user-nav-item">
-          Sales History
-        </Link>
-
         <div className="user-profile-section">
           <div className="user-avatar-circle">
-            <Link to='/profile'>S</Link>
+            <Link to="/profile">S</Link>
           </div>
           <Link
             to="/login"
