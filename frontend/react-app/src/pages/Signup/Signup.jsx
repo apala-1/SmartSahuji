@@ -7,6 +7,7 @@ import logoImg from "../../assets/images/logo.jpeg";
 const SignUpPage = () => {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
+  const [selectedCountry, setSelectedCountry] = useState("Nepal"); // Country name
   const [countryCode, setCountryCode] = useState("+977"); // Default to Nepal
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
@@ -167,10 +168,11 @@ const SignUpPage = () => {
             <div className="input-group">
               <label>Country</label>
               <select
-                value={Object.keys(countryCodes).find(
-                  (key) => countryCodes[key] === countryCode,
-                )}
-                onChange={(e) => setCountryCode(countryCodes[e.target.value])}
+                value={selectedCountry}
+                onChange={(e) => {
+                  setSelectedCountry(e.target.value);
+                  setCountryCode(countryCodes[e.target.value]);
+                }}
                 disabled={loading}
               >
                 {Object.keys(countryCodes).map((country) => (
@@ -188,7 +190,6 @@ const SignUpPage = () => {
                   type="text"
                   value={countryCode}
                   readOnly
-                  disabled={loading}
                   className="phone-prefix"
                 />
                 <input
