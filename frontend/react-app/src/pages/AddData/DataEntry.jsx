@@ -333,452 +333,349 @@ export default function DataEntry() {
     }
   };
 
+  const handleReset = () => {
+    setForm({
+      product_name: "",
+      barcode: "",
+      category: "General",
+      price: 0,
+      discount: 0,
+      quantity: 1,
+      date: new Date().toISOString().slice(0, 10),
+    });
+    setFieldErrors({});
+    setErrorMessage("");
+    setSuccessMessage("");
+    productNameRef.current?.focus();
+  };
+
   return (
     <div className="data-entry-container">
-      <h2>Product Entry</h2>
+      <div className="entry-header">
+        <h2>📝 Product Entry</h2>
+        <p className="entry-subtitle">Add new products to your inventory</p>
+      </div>
 
       {errorMessage && (
-        <div
-          style={{
-            padding: "10px",
-            marginBottom: "15px",
-            backgroundColor: "#fee",
-            color: "#c33",
-            borderRadius: "4px",
-            border: "1px solid #fcc",
-          }}
-        >
-          {errorMessage}
+        <div className="alert alert-error">
+          <span className="alert-icon">❌</span>
+          <span className="alert-message">{errorMessage}</span>
         </div>
       )}
 
       {successMessage && (
-        <div
-          style={{
-            padding: "10px",
-            marginBottom: "15px",
-            backgroundColor: "#efe",
-            color: "#3c3",
-            borderRadius: "4px",
-            border: "1px solid #cfc",
-          }}
-        >
-          {successMessage}
+        <div className="alert alert-success">
+          <span className="alert-icon">✅</span>
+          <span className="alert-message">{successMessage}</span>
         </div>
       )}
 
       <form className="data-entry-form" onSubmit={handleSubmit}>
-        <div style={{ position: "relative" }} ref={dropdownRef}>
-          <label
-            style={{
-              fontWeight: "600",
-              marginBottom: "5px",
-              display: "block",
-              color: "#333",
-            }}
+        <div className="form-grid">
+          {/* Product Name Field */}
+          <div
+            className="form-group"
+            style={{ position: "relative" }}
+            ref={dropdownRef}
           >
-            Product Name <span style={{ color: "#c33" }}>*</span>
-          </label>
-          <input
-            ref={productNameRef}
-            name="product_name"
-            placeholder="Type to search or enter new product"
-            value={form.product_name}
-            onChange={handleChange}
-            onKeyDown={handleProductNameKeyDown}
-            onFocus={() => {
-              if (searchSuggestions.length > 0) {
-                setShowDropdown(true);
-              }
-            }}
-            required
-            autoComplete="off"
-            style={fieldErrors.product_name ? { borderColor: "#c33" } : {}}
-          />
-
-          {/* Searching indicator */}
-          {isSearching && form.product_name.length >= 2 && (
-            <div
-              style={{
-                position: "absolute",
-                right: "10px",
-                top: "40px",
-                fontSize: "12px",
-                color: "#666",
+            <label className="form-label">
+              Product Name <span className="required-star">*</span>
+            </label>
+            <input
+              ref={productNameRef}
+              name="product_name"
+              placeholder="Type to search or enter new product"
+              value={form.product_name}
+              onChange={handleChange}
+              onKeyDown={handleProductNameKeyDown}
+              onFocus={() => {
+                if (searchSuggestions.length > 0) {
+                  setShowDropdown(true);
+                }
               }}
-            >
-              Searching...
-            </div>
-          )}
+              required
+              autoComplete="off"
+              className={`form-input ${fieldErrors.product_name ? "error" : ""}`}
+            />
 
-          {/* Autocomplete Dropdown */}
-          {showDropdown && searchSuggestions.length > 0 && (
-            <div
-              style={{
-                position: "absolute",
-                top: "100%",
-                left: 0,
-                right: 0,
-                backgroundColor: "white",
-                border: "1px solid #ccc",
-                borderRadius: "4px",
-                maxHeight: "200px",
-                overflowY: "auto",
-                zIndex: 1000,
-                boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
-                marginTop: "2px",
-              }}
-            >
-              {searchSuggestions.map((product, index) => (
-                <div
-                  key={product._id || index}
-                  onClick={() => selectProduct(product)}
-                  onMouseEnter={() => setSelectedSuggestionIndex(index)}
-                  style={{
-                    padding: "10px",
-                    cursor: "pointer",
-                    backgroundColor:
-                      selectedSuggestionIndex === index ? "#e3f2fd" : "white",
-                    borderBottom:
-                      index < searchSuggestions.length - 1
-                        ? "1px solid #eee"
-                        : "none",
-                  }}
-                >
-                  <div style={{ fontWeight: "600", color: "#333" }}>
-                    {product.name || product.product_name}
-                  </div>
-                  <div
-                    style={{
-                      fontSize: "12px",
-                      color: "#666",
-                      marginTop: "2px",
-                    }}
-                  >
-                    {product.barcode && `Barcode: ${product.barcode}`}
-                    {product.barcode && product.category && " | "}
-                    {product.category && `Category: ${product.category}`}
-                    {(product.sellingPrice || product.price) && (
-                      <span
-                        style={{
-                          marginLeft: "8px",
-                          color: "#27ae60",
-                          fontWeight: "600",
-                        }}
-                      >
-                        ₹{product.sellingPrice || product.price}
-                      </span>
-                    )}
-                  </div>
-                  {product.currentStock !== undefined && (
-                    <div
-                      style={{
-                        fontSize: "11px",
-                        color: product.currentStock > 0 ? "#27ae60" : "#c33",
-                        marginTop: "2px",
-                      }}
-                    >
-                      Stock: {product.currentStock}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* No results message */}
-          {!isSearching &&
-            form.product_name.length >= 2 &&
-            searchSuggestions.length === 0 &&
-            !showDropdown && (
-              <div
-                style={{
-                  fontSize: "12px",
-                  color: "#888",
-                  marginTop: "4px",
-                  fontStyle: "italic",
-                }}
-              >
-                No matching products found. You can enter a new product.
+            {/* Searching indicator */}
+            {isSearching && form.product_name.length >= 2 && (
+              <div className="search-indicator">
+                <span className="spinner"></span> Searching...
               </div>
             )}
 
-          {fieldErrors.product_name && (
-            <span
-              style={{
-                color: "#c33",
-                fontSize: "12px",
-                marginTop: "2px",
-                display: "block",
-              }}
+            {/* Autocomplete Dropdown */}
+            {showDropdown && searchSuggestions.length > 0 && (
+              <div className="autocomplete-dropdown">
+                {searchSuggestions.map((product, index) => (
+                  <div
+                    key={product._id || index}
+                    onClick={() => selectProduct(product)}
+                    onMouseEnter={() => setSelectedSuggestionIndex(index)}
+                    className={`dropdown-item ${
+                      selectedSuggestionIndex === index ? "active" : ""
+                    }`}
+                  >
+                    <div className="dropdown-product-name">
+                      {product.name || product.product_name}
+                    </div>
+                    <div className="dropdown-product-meta">
+                      {product.barcode && `Barcode: ${product.barcode}`}
+                      {product.barcode && product.category && " | "}
+                      {product.category && `Category: ${product.category}`}
+                      {(product.sellingPrice || product.price) && (
+                        <span className="dropdown-product-price">
+                          ₹{product.sellingPrice || product.price}
+                        </span>
+                      )}
+                    </div>
+                    {product.currentStock !== undefined && (
+                      <div
+                        className={`dropdown-product-stock ${
+                          product.currentStock > 0 ? "in-stock" : "out-stock"
+                        }`}
+                      >
+                        Stock: {product.currentStock}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* No results message */}
+            {!isSearching &&
+              form.product_name.length >= 2 &&
+              searchSuggestions.length === 0 &&
+              !showDropdown && (
+                <div className="no-results">
+                  No matching products found. You can enter a new product.
+                </div>
+              )}
+
+            {fieldErrors.product_name && (
+              <span className="error-message">{fieldErrors.product_name}</span>
+            )}
+          </div>
+
+          {/* Barcode Field */}
+          <div className="form-group">
+            <label className="form-label">
+              Barcode <span className="required-star">*</span>
+            </label>
+            <input
+              ref={barcodeRef}
+              name="barcode"
+              placeholder="Enter barcode or SKU"
+              value={form.barcode}
+              onChange={handleChange}
+              onKeyDown={(e) => handleKeyDown(e, categoryRef)}
+              required
+              className={`form-input ${fieldErrors.barcode ? "error" : ""}`}
+            />
+            {fieldErrors.barcode && (
+              <span className="error-message">{fieldErrors.barcode}</span>
+            )}
+          </div>
+
+          {/* Category Field */}
+          <div className="form-group">
+            <label className="form-label">Category</label>
+            <select
+              ref={categoryRef}
+              name="category"
+              value={form.category}
+              onChange={handleChange}
+              onKeyDown={(e) => handleKeyDown(e, priceRef)}
+              className="form-input"
             >
-              {fieldErrors.product_name}
-            </span>
-          )}
-        </div>
+              {categories.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+          </div>
 
-        <div>
-          <label
-            style={{
-              fontWeight: "600",
-              marginBottom: "5px",
-              display: "block",
-              color: "#333",
-            }}
-          >
-            Barcode <span style={{ color: "#c33" }}>*</span>
-          </label>
-          <input
-            ref={barcodeRef}
-            name="barcode"
-            placeholder="Enter barcode or SKU"
-            value={form.barcode}
-            onChange={handleChange}
-            onKeyDown={(e) => handleKeyDown(e, categoryRef)}
-            required
-            style={fieldErrors.barcode ? { borderColor: "#c33" } : {}}
-          />
-          {fieldErrors.barcode && (
-            <span
-              style={{
-                color: "#c33",
-                fontSize: "12px",
-                marginTop: "2px",
-                display: "block",
+          {/* Unit Price Field */}
+          <div className="form-group">
+            <label className="form-label">
+              Unit Price <span className="required-star">*</span>
+            </label>
+            <div className="input-with-prefix">
+              <span className="input-prefix">₹</span>
+              <input
+                ref={priceRef}
+                name="price"
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="0.00"
+                value={form.price}
+                onChange={handleChange}
+                onKeyDown={(e) => handleKeyDown(e, discountRef)}
+                required
+                className={`form-input ${fieldErrors.price ? "error" : ""}`}
+              />
+            </div>
+            {fieldErrors.price && (
+              <span className="error-message">{fieldErrors.price}</span>
+            )}
+          </div>
+
+          {/* Discount Field */}
+          <div className="form-group">
+            <label className="form-label">
+              Discount <span className="optional-label">(optional)</span>
+            </label>
+            <div className="input-with-suffix">
+              <input
+                ref={discountRef}
+                name="discount"
+                type="number"
+                step="0.01"
+                min="0"
+                max="100"
+                placeholder="0"
+                value={form.discount}
+                onChange={handleChange}
+                onKeyDown={(e) => handleKeyDown(e, quantityRef)}
+                className={`form-input ${fieldErrors.discount ? "error" : ""}`}
+              />
+              <span className="input-suffix">%</span>
+            </div>
+            {fieldErrors.discount && (
+              <span className="error-message">{fieldErrors.discount}</span>
+            )}
+          </div>
+
+          {/* Quantity Field */}
+          <div className="form-group">
+            <label className="form-label">
+              Quantity <span className="required-star">*</span>
+            </label>
+            <input
+              ref={quantityRef}
+              name="quantity"
+              type="number"
+              min="1"
+              step="1"
+              placeholder="1"
+              value={form.quantity}
+              onChange={handleChange}
+              onKeyDown={(e) => handleKeyDown(e, dateRef)}
+              required
+              className={`form-input ${fieldErrors.quantity ? "error" : ""}`}
+            />
+            {fieldErrors.quantity && (
+              <span className="error-message">{fieldErrors.quantity}</span>
+            )}
+          </div>
+
+          {/* Date Field */}
+          <div className="form-group">
+            <label className="form-label">Date</label>
+            <input
+              ref={dateRef}
+              name="date"
+              type="date"
+              value={form.date}
+              onChange={handleChange}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                }
               }}
-            >
-              {fieldErrors.barcode}
-            </span>
-          )}
-        </div>
-
-        <div>
-          <label
-            style={{
-              fontWeight: "600",
-              marginBottom: "5px",
-              display: "block",
-              color: "#333",
-            }}
-          >
-            Category
-          </label>
-          <select
-            ref={categoryRef}
-            name="category"
-            value={form.category}
-            onChange={handleChange}
-            onKeyDown={(e) => handleKeyDown(e, priceRef)}
-          >
-            {categories.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label
-            style={{
-              fontWeight: "600",
-              marginBottom: "5px",
-              display: "block",
-              color: "#333",
-            }}
-          >
-            Unit Price <span style={{ color: "#c33" }}>*</span>
-          </label>
-          <input
-            ref={priceRef}
-            name="price"
-            type="number"
-            step="0.01"
-            min="0"
-            placeholder="Enter price per unit"
-            value={form.price}
-            onChange={handleChange}
-            onKeyDown={(e) => handleKeyDown(e, discountRef)}
-            required
-            style={fieldErrors.price ? { borderColor: "#c33" } : {}}
-          />
-          {fieldErrors.price && (
-            <span
-              style={{
-                color: "#c33",
-                fontSize: "12px",
-                marginTop: "2px",
-                display: "block",
-              }}
-            >
-              {fieldErrors.price}
-            </span>
-          )}
-        </div>
-
-        <div>
-          <label
-            style={{
-              fontWeight: "600",
-              marginBottom: "5px",
-              display: "block",
-              color: "#333",
-            }}
-          >
-            Discount (%){" "}
-            <span style={{ fontSize: "12px", color: "#888" }}>(optional)</span>
-          </label>
-          <input
-            ref={discountRef}
-            name="discount"
-            type="number"
-            step="0.01"
-            min="0"
-            max="100"
-            placeholder="Enter discount percentage (0-100)"
-            value={form.discount}
-            onChange={handleChange}
-            onKeyDown={(e) => handleKeyDown(e, quantityRef)}
-            style={fieldErrors.discount ? { borderColor: "#c33" } : {}}
-          />
-          {fieldErrors.discount && (
-            <span
-              style={{
-                color: "#c33",
-                fontSize: "12px",
-                marginTop: "2px",
-                display: "block",
-              }}
-            >
-              {fieldErrors.discount}
-            </span>
-          )}
-        </div>
-
-        <div>
-          <label
-            style={{
-              fontWeight: "600",
-              marginBottom: "5px",
-              display: "block",
-              color: "#333",
-            }}
-          >
-            Quantity <span style={{ color: "#c33" }}>*</span>
-          </label>
-          <input
-            ref={quantityRef}
-            name="quantity"
-            type="number"
-            min="1"
-            step="1"
-            placeholder="Enter quantity"
-            value={form.quantity}
-            onChange={handleChange}
-            onKeyDown={(e) => handleKeyDown(e, dateRef)}
-            required
-            style={fieldErrors.quantity ? { borderColor: "#c33" } : {}}
-          />
-          {fieldErrors.quantity && (
-            <span
-              style={{
-                color: "#c33",
-                fontSize: "12px",
-                marginTop: "2px",
-                display: "block",
-              }}
-            >
-              {fieldErrors.quantity}
-            </span>
-          )}
-        </div>
-
-        <div>
-          <label
-            style={{
-              fontWeight: "600",
-              marginBottom: "5px",
-              display: "block",
-              color: "#333",
-            }}
-          >
-            Date
-          </label>
-          <input
-            ref={dateRef}
-            name="date"
-            type="date"
-            value={form.date}
-            onChange={handleChange}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                // On last field, Enter does nothing - user must click Save
-              }
-            }}
-          />
+              className="form-input"
+            />
+          </div>
         </div>
 
         {/* Price Calculation Display */}
         {unitPrice > 0 && (
-          <div
-            style={{
-              padding: "15px",
-              backgroundColor: "#f0f8ff",
-              borderRadius: "4px",
-              border: "1px solid #b0d4f1",
-              marginTop: "10px",
-            }}
-          >
-            <div style={{ marginBottom: "8px", fontSize: "14px" }}>
-              <strong>Price Before Discount:</strong> ₹{unitPrice.toFixed(2)}
+          <div className="price-summary">
+            <div className="summary-row">
+              <span className="summary-label">Price Before Discount:</span>
+              <span className="summary-value">₹{unitPrice.toFixed(2)}</span>
             </div>
             {form.discount > 0 && (
-              <div
-                style={{
-                  marginBottom: "8px",
-                  fontSize: "14px",
-                  color: "#e67e22",
-                }}
-              >
-                <strong>Discount ({form.discount}%):</strong> -₹
-                {discountAmount.toFixed(2)}
+              <div className="summary-row discount-row">
+                <span className="summary-label">
+                  Discount ({form.discount}%):
+                </span>
+                <span className="summary-value discount">
+                  -₹{discountAmount.toFixed(2)}
+                </span>
               </div>
             )}
-            <div style={{ marginBottom: "8px", fontSize: "14px" }}>
-              <strong>Price After Discount:</strong> ₹
-              {priceAfterDiscount.toFixed(2)}
+            <div className="summary-row">
+              <span className="summary-label">Price After Discount:</span>
+              <span className="summary-value highlight">
+                ₹{priceAfterDiscount.toFixed(2)}
+              </span>
             </div>
             {form.quantity > 0 && (
-              <div
-                style={{
-                  fontSize: "16px",
-                  fontWeight: "bold",
-                  color: "#27ae60",
-                  paddingTop: "8px",
-                  borderTop: "1px solid #b0d4f1",
-                }}
-              >
-                <strong>
+              <div className="summary-row total-row">
+                <span className="summary-label">
                   Total ({form.quantity} × ₹{priceAfterDiscount.toFixed(2)}):
-                </strong>{" "}
-                ₹{total.toFixed(2)}
+                </span>
+                <span className="summary-value total">₹{total.toFixed(2)}</span>
               </div>
             )}
           </div>
         )}
 
-        <button type="submit">Save Transaction</button>
+        {/* Action Buttons */}
+        <div className="form-actions">
+          <button type="submit" className="btn btn-primary">
+            💾 Save Transaction
+          </button>
+          <button
+            type="button"
+            onClick={handleReset}
+            className="btn btn-secondary"
+          >
+            🔄 Clear Form
+          </button>
+        </div>
       </form>
 
-      <div className="bulk-upload">
-        <h2>Bulk Upload</h2>
-        <input
-          type="file"
-          accept=".csv,.xlsx"
-          onChange={(e) => setFile(e.target.files[0])}
-        />
-        <button onClick={handleUpload}>Upload</button>
+      <div className="bulk-upload-section">
+        <div className="section-header">
+          <h3>📤 Bulk Upload</h3>
+          <p className="section-subtitle">Upload multiple products at once</p>
+        </div>
+        <div className="upload-area">
+          <input
+            type="file"
+            accept=".csv,.xlsx"
+            onChange={(e) => setFile(e.target.files[0])}
+            className="file-input"
+            id="file-upload"
+          />
+          <label htmlFor="file-upload" className="file-label">
+            {file ? (
+              <>
+                <span className="file-icon">📎</span>
+                <span className="file-name">{file.name}</span>
+              </>
+            ) : (
+              <>
+                <span className="file-icon">📁</span>
+                <span className="file-text">Choose CSV or XLSX file</span>
+              </>
+            )}
+          </label>
+          <button
+            onClick={handleUpload}
+            className="btn btn-primary upload-btn"
+            disabled={!file}
+          >
+            ⬆️ Upload File
+          </button>
+        </div>
+        <div className="upload-hint">📋 Supported formats: CSV, XLSX</div>
       </div>
     </div>
   );
