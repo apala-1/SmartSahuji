@@ -11,6 +11,8 @@ export default function SalesHistory() {
   const [error, setError] = useState("");
   const [filter, setFilter] = useState("All"); // All, Sale, Purchase
   const [inventoryMap, setInventoryMap] = useState({}); // Map barcode/name to buying price
+  const [searchTerm, setSearchTerm] = useState("");
+  const [dateRange, setDateRange] = useState({ start: "", end: "" });
 
   // Fetch inventory data to get buying prices
   useEffect(() => {
@@ -29,22 +31,13 @@ export default function SalesHistory() {
 
         if (res.ok) {
           const data = await res.json();
-          console.log("📦 Inventory API Response:", data);
 
           // Backend returns {inventory: [...]}
           const items = data.inventory || [];
-          console.log("📦 Inventory items count:", items.length);
 
           // Create a map for quick lookup: barcode/name -> buying price
           const map = {};
           items.forEach((item) => {
-            console.log("📦 Processing item:", {
-              name: item.name,
-              barcode: item.barcode,
-              buyingPrice: item.buyingPrice,
-              sellingPrice: item.sellingPrice,
-            });
-
             if (item.barcode) {
               map[item.barcode.toUpperCase()] = {
                 buyingPrice: item.buyingPrice,
@@ -60,7 +53,6 @@ export default function SalesHistory() {
               };
             }
           });
-          console.log("📦 Inventory map created:", map);
           setInventoryMap(map);
         }
       } catch (err) {
@@ -94,8 +86,6 @@ export default function SalesHistory() {
         if (!res.ok) throw new Error("Failed to fetch sales data");
 
         const data = await res.json();
-        console.log("💰 Sales API Response:", data);
-        console.log("💰 First sale item:", data[0]);
         setSales(Array.isArray(data) ? data : []);
       } catch (err) {
         setError(err.message || "Something went wrong");
@@ -110,20 +100,12 @@ export default function SalesHistory() {
 
   // Get buying price from inventory
   const getBuyingPrice = (sale) => {
-    console.log("🔍 Looking up buying price for:", {
-      product_name: sale.product_name,
-      barcode: sale.barcode,
-    });
-
     // First try to get from inventory map by barcode
     if (sale.barcode) {
       const barcodeKey = sale.barcode.toUpperCase();
       const inv = inventoryMap[barcodeKey];
       if (inv) {
-        console.log("✅ Found by barcode:", barcodeKey, "->", inv.buyingPrice);
         return inv.buyingPrice || 0;
-      } else {
-        console.log("❌ Not found by barcode:", barcodeKey);
       }
     }
 
@@ -132,15 +114,11 @@ export default function SalesHistory() {
       const nameKey = sale.product_name.toLowerCase();
       const inv = inventoryMap[nameKey];
       if (inv) {
-        console.log("✅ Found by name:", nameKey, "->", inv.buyingPrice);
         return inv.buyingPrice || 0;
-      } else {
-        console.log("❌ Not found by name:", nameKey);
       }
     }
 
     // Fallback to stored cost (for purchases) or 0
-    console.log("⚠️ Using fallback cost:", sale.cost || 0);
     return sale.cost || 0;
   };
 
@@ -156,9 +134,35 @@ export default function SalesHistory() {
     return profit;
   };
 
-  // Filter sales based on selected type
-  const filteredSales =
-    filter === "All" ? sales : sales.filter((s) => s.item_type === filter);
+  // Filter sales based on selected type, search, and date range
+  const filteredSales = sales.filter((s) => {
+    // Filter by type
+    const typeMatch = filter === "All" || s.item_type === filter;
+
+    // Filter by search term
+    const searchMatch =
+      !searchTerm ||
+      s.product_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      s.barcode?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      s.category?.toLowerCase().includes(searchTerm.toLowerCase());
+
+    // Filter by date range
+    let dateMatch = true;
+    if (dateRange.start || dateRange.end) {
+      const saleDate = new Date(s.date);
+      if (dateRange.start) {
+        const startDate = new Date(dateRange.start);
+        dateMatch = dateMatch && saleDate >= startDate;
+      }
+      if (dateRange.end) {
+        const endDate = new Date(dateRange.end);
+        endDate.setHours(23, 59, 59, 999);
+        dateMatch = dateMatch && saleDate <= endDate;
+      }
+    }
+
+    return typeMatch && searchMatch && dateMatch;
+  });
 
   // Calculate totals
   const totals = filteredSales.reduce(
@@ -179,9 +183,11 @@ export default function SalesHistory() {
     return (
       <>
         <UserNavbar />
-        <div className="main-content">
-          <h2>Sales Ledger</h2>
-          <p>Loading sales data...</p>
+        <div className="sales-history-container">
+          <div className="loading-state">
+            <div className="spinner"></div>
+            <p>Loading sales data...</p>
+          </div>
         </div>
       </>
     );
@@ -192,9 +198,18 @@ export default function SalesHistory() {
     return (
       <>
         <UserNavbar />
-        <div className="main-content">
-          <h2>Sales Ledger</h2>
-          <p className="error-text">{error}</p>
+        <div className="sales-history-container">
+          <div className="error-state">
+            <div className="error-icon">⚠️</div>
+            <h3>Oops! Something went wrong</h3>
+            <p className="error-text">{error}</p>
+            <button
+              className="retry-btn"
+              onClick={() => window.location.reload()}
+            >
+              Retry
+            </button>
+          </div>
         </div>
       </>
     );
@@ -203,153 +218,280 @@ export default function SalesHistory() {
   return (
     <>
       <UserNavbar />
-      <div className="main-content">
-        <h2>Sales Ledger</h2>
-
-        {/* Filter Dropdown */}
-        <div className="filter-bar">
-          <label htmlFor="filter">Filter by Type:</label>
-          <select
-            id="filter"
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
+      <div className="sales-history-container">
+        {/* Header Section */}
+        <div className="page-header">
+          <div className="header-left">
+            <h1 className="page-title">📊 Sales History</h1>
+            <p className="page-subtitle">Track and analyze your transactions</p>
+          </div>
+          <button
+            className="analytics-btn"
+            onClick={() => navigate("/analytics")}
           >
-            <option value="All">All</option>
-            <option value="Sale">Sale</option>
-            <option value="Purchase">Purchase</option>
-          </select>
+            📈 View Analytics
+          </button>
         </div>
 
-        {/* Analyze Button */}
-        <button className="analyze-btn" onClick={() => navigate("/analytics")}>
-          Analyze Data
-        </button>
-
-        {/* Table */}
-        {filteredSales.length === 0 ? (
-          <p>No {filter === "All" ? "" : filter} records found.</p>
-        ) : (
-          <table className="excel-main-grid">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Barcode</th>
-                <th>Category</th>
-                <th>Item Type</th>
-                <th>Sale Type</th>
-                <th>Selling Price</th>
-                <th>Buying Price</th>
-                <th>Quantity</th>
-                <th>Profit</th>
-                <th>Date</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredSales.map((s) => {
-                const buyingPrice = getBuyingPrice(s);
-                const profit = calculateProfit(s);
-                const sellingPrice = s.price || 0;
-
-                return (
-                  <tr key={s._id}>
-                    <td>{s.product_name}</td>
-                    <td>{s.barcode || "-"}</td>
-                    <td>{s.category}</td>
-                    <td>{s.item_type}</td>
-                    <td>{s.sale_type || "-"}</td>
-                    <td>₹{sellingPrice.toFixed(2)}</td>
-                    <td>₹{buyingPrice.toFixed(2)}</td>
-                    <td>{s.quantity}</td>
-                    <td
-                      style={{
-                        color:
-                          profit !== null
-                            ? profit >= 0
-                              ? "#27ae60"
-                              : "#c33"
-                            : "#666",
-                        fontWeight: profit !== null ? "600" : "normal",
-                      }}
-                    >
-                      {profit !== null ? `₹${profit.toFixed(2)}` : "-"}
-                    </td>
-                    <td>{new Date(s.date).toLocaleDateString()}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+        {/* Stats Cards */}
+        {filter === "Sale" && filteredSales.length > 0 && (
+          <div className="stats-grid">
+            <div className="stat-card revenue">
+              <div className="stat-icon">💰</div>
+              <div className="stat-content">
+                <p className="stat-label">Total Revenue</p>
+                <h3 className="stat-value">₹{totals.totalSales.toFixed(2)}</h3>
+              </div>
+            </div>
+            <div className="stat-card cost">
+              <div className="stat-icon">💸</div>
+              <div className="stat-content">
+                <p className="stat-label">Total Cost</p>
+                <h3 className="stat-value">₹{totals.totalCost.toFixed(2)}</h3>
+              </div>
+            </div>
+            <div className="stat-card profit">
+              <div className="stat-icon">
+                {totals.totalProfit >= 0 ? "📈" : "📉"}
+              </div>
+              <div className="stat-content">
+                <p className="stat-label">Total Profit</p>
+                <h3
+                  className="stat-value"
+                  style={{
+                    color: totals.totalProfit >= 0 ? "#27ae60" : "#e74c3c",
+                  }}
+                >
+                  ₹{totals.totalProfit.toFixed(2)}
+                </h3>
+              </div>
+            </div>
+            <div className="stat-card margin">
+              <div className="stat-icon">📊</div>
+              <div className="stat-content">
+                <p className="stat-label">Profit Margin</p>
+                <h3
+                  className="stat-value"
+                  style={{
+                    color: totals.totalProfit >= 0 ? "#27ae60" : "#e74c3c",
+                  }}
+                >
+                  {totals.totalSales > 0
+                    ? ((totals.totalProfit / totals.totalSales) * 100).toFixed(
+                        2,
+                      )
+                    : "0.00"}
+                  %
+                </h3>
+              </div>
+            </div>
+          </div>
         )}
 
-        {/* Summary Section */}
-        {filteredSales.length > 0 && filter === "Sale" && (
-          <div
-            style={{
-              marginTop: "20px",
-              padding: "15px",
-              backgroundColor: "#f5f5f5",
-              borderRadius: "8px",
-              display: "flex",
-              justifyContent: "space-around",
-              flexWrap: "wrap",
-              gap: "15px",
-            }}
-          >
-            <div style={{ textAlign: "center" }}>
-              <div style={{ fontSize: "14px", color: "#666" }}>Total Sales</div>
-              <div
-                style={{
-                  fontSize: "20px",
-                  fontWeight: "bold",
-                  color: "#2c3e50",
-                }}
-              >
-                ₹{totals.totalSales.toFixed(2)}
-              </div>
+        {/* Filters and Search Section */}
+        <div className="controls-section">
+          <div className="filter-tabs">
+            <button
+              className={`filter-tab ${filter === "All" ? "active" : ""}`}
+              onClick={() => setFilter("All")}
+            >
+              All Transactions ({sales.length})
+            </button>
+            <button
+              className={`filter-tab ${filter === "Sale" ? "active" : ""}`}
+              onClick={() => setFilter("Sale")}
+            >
+              Sales ({sales.filter((s) => s.item_type === "Sale").length})
+            </button>
+            <button
+              className={`filter-tab ${filter === "Purchase" ? "active" : ""}`}
+              onClick={() => setFilter("Purchase")}
+            >
+              Purchases (
+              {sales.filter((s) => s.item_type === "Purchase").length})
+            </button>
+          </div>
+
+          <div className="search-filter-section">
+            <div className="search-box">
+              <span className="search-icon">🔍</span>
+              <input
+                type="text"
+                placeholder="Search by product, barcode, or category..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="search-input"
+              />
+              {searchTerm && (
+                <button
+                  className="clear-search"
+                  onClick={() => setSearchTerm("")}
+                >
+                  ✕
+                </button>
+              )}
             </div>
-            <div style={{ textAlign: "center" }}>
-              <div style={{ fontSize: "14px", color: "#666" }}>Total Cost</div>
-              <div
-                style={{
-                  fontSize: "20px",
-                  fontWeight: "bold",
-                  color: "#e67e22",
-                }}
-              >
-                ₹{totals.totalCost.toFixed(2)}
-              </div>
+
+            <div className="date-filters">
+              <input
+                type="date"
+                value={dateRange.start}
+                onChange={(e) =>
+                  setDateRange({ ...dateRange, start: e.target.value })
+                }
+                className="date-input"
+                placeholder="Start Date"
+              />
+              <span className="date-separator">to</span>
+              <input
+                type="date"
+                value={dateRange.end}
+                onChange={(e) =>
+                  setDateRange({ ...dateRange, end: e.target.value })
+                }
+                className="date-input"
+                placeholder="End Date"
+              />
+              {(dateRange.start || dateRange.end) && (
+                <button
+                  className="clear-dates"
+                  onClick={() => setDateRange({ start: "", end: "" })}
+                  title="Clear dates"
+                >
+                  ✕
+                </button>
+              )}
             </div>
-            <div style={{ textAlign: "center" }}>
-              <div style={{ fontSize: "14px", color: "#666" }}>
-                Total Profit
-              </div>
-              <div
-                style={{
-                  fontSize: "20px",
-                  fontWeight: "bold",
-                  color: totals.totalProfit >= 0 ? "#27ae60" : "#c33",
-                }}
-              >
-                ₹{totals.totalProfit.toFixed(2)}
-              </div>
-            </div>
-            <div style={{ textAlign: "center" }}>
-              <div style={{ fontSize: "14px", color: "#666" }}>
-                Profit Margin
-              </div>
-              <div
-                style={{
-                  fontSize: "20px",
-                  fontWeight: "bold",
-                  color: totals.totalProfit >= 0 ? "#27ae60" : "#c33",
-                }}
-              >
-                {totals.totalSales > 0
-                  ? ((totals.totalProfit / totals.totalSales) * 100).toFixed(2)
-                  : "0.00"}
-                %
-              </div>
-            </div>
+          </div>
+        </div>
+
+        {/* Results Info */}
+        <div className="results-info">
+          <span className="results-count">
+            {filteredSales.length}{" "}
+            {filteredSales.length === 1 ? "result" : "results"} found
+          </span>
+          {(searchTerm ||
+            dateRange.start ||
+            dateRange.end ||
+            filter !== "All") && (
+            <button
+              className="clear-all-filters"
+              onClick={() => {
+                setSearchTerm("");
+                setDateRange({ start: "", end: "" });
+                setFilter("All");
+              }}
+            >
+              Clear all filters
+            </button>
+          )}
+        </div>
+
+        {/* Table Section */}
+        {filteredSales.length === 0 ? (
+          <div className="empty-state">
+            <div className="empty-icon">📭</div>
+            <h3>No transactions found</h3>
+            <p>
+              {searchTerm || dateRange.start || dateRange.end
+                ? "Try adjusting your filters or search criteria"
+                : filter !== "All"
+                  ? `No ${filter.toLowerCase()} records available`
+                  : "Start adding transactions to see them here"}
+            </p>
+            <button
+              className="add-transaction-btn"
+              onClick={() => navigate("/data-entry")}
+            >
+              + Add Transaction
+            </button>
+          </div>
+        ) : (
+          <div className="table-container">
+            <table className="modern-table">
+              <thead>
+                <tr>
+                  <th>Product</th>
+                  <th>Barcode</th>
+                  <th>Category</th>
+                  <th>Type</th>
+                  <th className="text-right">Selling Price</th>
+                  <th className="text-right">Buying Price</th>
+                  <th className="text-center">Qty</th>
+                  <th className="text-right">Profit</th>
+                  <th>Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredSales.map((s) => {
+                  const buyingPrice = getBuyingPrice(s);
+                  const profit = calculateProfit(s);
+                  const sellingPrice = s.price || 0;
+
+                  return (
+                    <tr key={s._id}>
+                      <td>
+                        <div className="product-cell">
+                          <span className="product-name">{s.product_name}</span>
+                          {s.sale_type && (
+                            <span className="sale-type-badge">
+                              {s.sale_type}
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td>
+                        <code className="barcode-text">{s.barcode || "-"}</code>
+                      </td>
+                      <td>
+                        <span className="category-badge">{s.category}</span>
+                      </td>
+                      <td>
+                        <span
+                          className={`type-badge ${s.item_type.toLowerCase()}`}
+                        >
+                          {s.item_type}
+                        </span>
+                      </td>
+                      <td className="text-right">
+                        <span className="price-value">
+                          ₹{sellingPrice.toFixed(2)}
+                        </span>
+                      </td>
+                      <td className="text-right">
+                        <span className="price-value buying">
+                          ₹{buyingPrice.toFixed(2)}
+                        </span>
+                      </td>
+                      <td className="text-center">
+                        <span className="quantity-badge">{s.quantity}</span>
+                      </td>
+                      <td className="text-right">
+                        {profit !== null ? (
+                          <span
+                            className={`profit-value ${profit >= 0 ? "positive" : "negative"}`}
+                          >
+                            {profit >= 0 ? "+" : ""}₹{profit.toFixed(2)}
+                          </span>
+                        ) : (
+                          <span className="na-text">-</span>
+                        )}
+                      </td>
+                      <td>
+                        <span className="date-text">
+                          {new Date(s.date).toLocaleDateString("en-IN", {
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                          })}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         )}
       </div>
