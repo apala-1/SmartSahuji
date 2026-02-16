@@ -5,6 +5,7 @@ BASE_URL = "http://127.0.0.1:9000"  # Your FastAPI server
 # ------------------------
 # 1️⃣ GET INSIGHTS
 # ------------------------
+
 def test_insights(period="weekly", category=None, item_type=None):
     url = f"{BASE_URL}/insights"
     params = {"period": period}
@@ -17,6 +18,7 @@ def test_insights(period="weekly", category=None, item_type=None):
     print("INSIGHTS STATUS:", response.status_code)
     print(response.json())
     print("\n")
+
 
 # ------------------------
 # 2️⃣ GET FORECAST
