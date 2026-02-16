@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   LineChart,
@@ -11,6 +11,9 @@ import {
   ResponsiveContainer,
   BarChart,
   Bar,
+  defs,
+  linearGradient,
+  stop,
 } from "recharts";
 import "./Analytics.css";
 
@@ -23,6 +26,14 @@ export default function Analytics() {
   const [endDate, setEndDate] = useState("");
   const [category, setCategory] = useState("");
 
+  // Format number with commas and decimals
+  const formatNumber = (num, decimals = 2) => {
+    return num.toLocaleString("en-IN", {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals,
+    });
+  };
+
   const fetchData = () => {
     const token = localStorage.getItem("token")?.trim();
     if (!token) {
@@ -32,15 +43,12 @@ export default function Analytics() {
     }
 
     let url = `http://localhost:8000/analytics?period=${period}`;
-
     if (startDate) url += `&start_date=${startDate}`;
     if (endDate) url += `&end_date=${endDate}`;
     if (category) url += `&category=${category}`;
 
     fetch(url, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      headers: { Authorization: `Bearer ${token}` },
     })
       .then((res) => res.json())
       .then((json) => setData(json))
@@ -74,6 +82,7 @@ export default function Analytics() {
               onChange={(e) => setPeriod(e.target.value)}
               className="filter-select"
             >
+              <option value="daily">📆 Daily</option>
               <option value="weekly">📅 Weekly</option>
               <option value="monthly">📆 Monthly</option>
               <option value="yearly">🗓️ Yearly</option>
@@ -104,14 +113,23 @@ export default function Analytics() {
 
           <div className="filter-group">
             <label htmlFor="category">Category</label>
-            <input
+            <select
               id="category"
-              type="text"
-              placeholder="e.g., Electronics"
               value={category}
               onChange={(e) => setCategory(e.target.value)}
-              className="filter-input"
-            />
+              className="filter-select"
+            >
+              <option value="">All Categories</option>
+              <option value="Electronics">Electronics</option>
+              <option value="Clothing">Clothing</option>
+              <option value="Food">Food</option>
+              <option value="Books">Books</option>
+              <option value="Household">Household</option>
+              <option value="Beauty">Beauty</option>
+              <option value="Sports">Sports</option>
+              <option value="Toys">Toys</option>
+              <option value="Other">Other</option>
+            </select>
           </div>
         </div>
 
@@ -140,11 +158,7 @@ export default function Analytics() {
             <div className="stat-content">
               <p className="stat-label">Total Revenue</p>
               <h3 className="stat-value">
-                ₹
-                {data.summary.total_revenue.toLocaleString("en-IN", {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })}
+                ₹{formatNumber(data.summary.total_revenue)}
               </h3>
             </div>
           </div>
@@ -153,11 +167,7 @@ export default function Analytics() {
             <div className="stat-content">
               <p className="stat-label">Total Profit</p>
               <h3 className="stat-value">
-                ₹
-                {data.summary.total_profit.toLocaleString("en-IN", {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })}
+                ₹{formatNumber(data.summary.total_profit)}
               </h3>
             </div>
           </div>
@@ -166,7 +176,7 @@ export default function Analytics() {
             <div className="stat-content">
               <p className="stat-label">Total Orders</p>
               <h3 className="stat-value">
-                {data.summary.total_orders.toLocaleString("en-IN")}
+                {formatNumber(data.summary.total_orders, 0)}
               </h3>
             </div>
           </div>
@@ -175,12 +185,12 @@ export default function Analytics() {
             <div className="stat-content">
               <p className="stat-label">Profit Margin</p>
               <h3 className="stat-value">
-                {data.summary.total_revenue > 0
-                  ? (
-                      (data.summary.total_profit / data.summary.total_revenue) *
-                      100
-                    ).toFixed(2)
-                  : "0.00"}
+                {formatNumber(
+                  data.summary.total_revenue > 0
+                    ? (data.summary.total_profit / data.summary.total_revenue) *
+                        100
+                    : 0,
+                )}
                 %
               </h3>
             </div>
@@ -200,6 +210,28 @@ export default function Analytics() {
             <div className="chart-wrapper">
               <ResponsiveContainer width="100%" height={350}>
                 <LineChart data={data.trend_series}>
+                  <defs>
+                    <linearGradient
+                      id="revenueGradient"
+                      x1="0"
+                      y1="0"
+                      x2="0"
+                      y2="1"
+                    >
+                      <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.3} />
+                      <stop offset="100%" stopColor="#3b82f6" stopOpacity={0} />
+                    </linearGradient>
+                    <linearGradient
+                      id="profitGradient"
+                      x1="0"
+                      y1="0"
+                      x2="0"
+                      y2="1"
+                    >
+                      <stop offset="0%" stopColor="#10b981" stopOpacity={0.3} />
+                      <stop offset="100%" stopColor="#10b981" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                   <XAxis
                     dataKey="period"
@@ -225,6 +257,8 @@ export default function Analytics() {
                     strokeWidth={3}
                     dot={{ fill: "#3b82f6", r: 4 }}
                     activeDot={{ r: 6 }}
+                    fill="url(#revenueGradient)"
+                    animationDuration={1500}
                   />
                   <Line
                     type="monotone"
@@ -233,169 +267,93 @@ export default function Analytics() {
                     strokeWidth={3}
                     dot={{ fill: "#10b981", r: 4 }}
                     activeDot={{ r: 6 }}
+                    fill="url(#profitGradient)"
+                    animationDuration={1500}
                   />
                 </LineChart>
               </ResponsiveContainer>
             </div>
           </div>
 
-          {/* Category Charts Grid */}
+          {/* Category Charts */}
           <div className="charts-grid">
-            {/* Revenue vs Profit by Category */}
-            <div className="chart-card">
-              <div className="chart-header">
-                <h3>💼 Revenue vs Profit by Category</h3>
-              </div>
-              <div className="chart-wrapper">
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={data.category_stats}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                    <XAxis
-                      dataKey="category"
-                      stroke="#64748b"
-                      style={{ fontSize: "0.8rem" }}
-                    />
-                    <YAxis stroke="#64748b" style={{ fontSize: "0.8rem" }} />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "#ffffff",
-                        border: "1px solid #e2e8f0",
-                        borderRadius: "8px",
-                      }}
-                    />
-                    <Legend
-                      wrapperStyle={{
-                        fontSize: "0.85rem",
-                        fontWeight: "600",
-                      }}
-                    />
-                    <Bar
-                      dataKey="revenue"
-                      fill="#3b82f6"
-                      radius={[8, 8, 0, 0]}
-                    />
-                    <Bar
-                      dataKey="profit"
-                      fill="#10b981"
-                      radius={[8, 8, 0, 0]}
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
+            {["Revenue vs Profit", "Profit", "Loss", "Profit Margin"].map(
+              (title, index) => {
+                const keyMap = {
+                  "Revenue vs Profit": ["revenue", "profit"],
+                  Profit: ["profit"],
+                  Loss: ["loss"],
+                  "Profit Margin": ["profit_margin"],
+                };
+                const colors = {
+                  revenue: "#3b82f6",
+                  profit: "#10b981",
+                  loss: "#ef4444",
+                  profit_margin: "#8b5cf6",
+                };
 
-            {/* Profit by Category */}
-            <div className="chart-card">
-              <div className="chart-header">
-                <h3>📊 Profit by Category</h3>
-              </div>
-              <div className="chart-wrapper">
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={data.category_stats}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                    <XAxis
-                      dataKey="category"
-                      stroke="#64748b"
-                      style={{ fontSize: "0.8rem" }}
-                    />
-                    <YAxis stroke="#64748b" style={{ fontSize: "0.8rem" }} />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "#ffffff",
-                        border: "1px solid #e2e8f0",
-                        borderRadius: "8px",
-                      }}
-                    />
-                    <Legend
-                      wrapperStyle={{
-                        fontSize: "0.85rem",
-                        fontWeight: "600",
-                      }}
-                    />
-                    <Bar
-                      dataKey="profit"
-                      fill="#10b981"
-                      radius={[8, 8, 0, 0]}
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-
-            {/* Loss by Category */}
-            <div className="chart-card">
-              <div className="chart-header">
-                <h3>📉 Loss by Category</h3>
-              </div>
-              <div className="chart-wrapper">
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={data.category_stats}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                    <XAxis
-                      dataKey="category"
-                      stroke="#64748b"
-                      style={{ fontSize: "0.8rem" }}
-                    />
-                    <YAxis stroke="#64748b" style={{ fontSize: "0.8rem" }} />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "#ffffff",
-                        border: "1px solid #e2e8f0",
-                        borderRadius: "8px",
-                      }}
-                    />
-                    <Legend
-                      wrapperStyle={{
-                        fontSize: "0.85rem",
-                        fontWeight: "600",
-                      }}
-                    />
-                    <Bar dataKey="loss" fill="#ef4444" radius={[8, 8, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-
-            {/* Profit Margin by Category */}
-            <div className="chart-card">
-              <div className="chart-header">
-                <h3>💹 Profit Margin by Category</h3>
-              </div>
-              <div className="chart-wrapper">
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={data.category_stats}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                    <XAxis
-                      dataKey="category"
-                      stroke="#64748b"
-                      style={{ fontSize: "0.8rem" }}
-                    />
-                    <YAxis stroke="#64748b" style={{ fontSize: "0.8rem" }} />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "#ffffff",
-                        border: "1px solid #e2e8f0",
-                        borderRadius: "8px",
-                      }}
-                    />
-                    <Legend
-                      wrapperStyle={{
-                        fontSize: "0.85rem",
-                        fontWeight: "600",
-                      }}
-                    />
-                    <Bar
-                      dataKey="profit_margin"
-                      fill="#8b5cf6"
-                      radius={[8, 8, 0, 0]}
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
+                return (
+                  <div className="chart-card" key={index}>
+                    <div className="chart-header">
+                      <h3>
+                        {title === "Revenue vs Profit"
+                          ? "💼"
+                          : title === "Profit"
+                            ? "📊"
+                            : title === "Loss"
+                              ? "📉"
+                              : "💹"}{" "}
+                        {title} by Category
+                      </h3>
+                    </div>
+                    <div className="chart-wrapper">
+                      <ResponsiveContainer width="100%" height={300}>
+                        <BarChart data={data.category_stats}>
+                          <CartesianGrid
+                            strokeDasharray="3 3"
+                            stroke="#e2e8f0"
+                          />
+                          <XAxis
+                            dataKey="category"
+                            stroke="#64748b"
+                            style={{ fontSize: "0.8rem" }}
+                          />
+                          <YAxis
+                            stroke="#64748b"
+                            style={{ fontSize: "0.8rem" }}
+                          />
+                          <Tooltip
+                            contentStyle={{
+                              backgroundColor: "#ffffff",
+                              border: "1px solid #e2e8f0",
+                              borderRadius: "8px",
+                            }}
+                          />
+                          <Legend
+                            wrapperStyle={{
+                              fontSize: "0.85rem",
+                              fontWeight: "600",
+                            }}
+                          />
+                          {keyMap[title].map((k) => (
+                            <Bar
+                              key={k}
+                              dataKey={k}
+                              fill={colors[k]}
+                              radius={[8, 8, 0, 0]}
+                              animationDuration={1500}
+                            />
+                          ))}
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                );
+              },
+            )}
           </div>
 
-          {/* Top Products Section */}
+          {/* Top Products */}
           <div className="top-products-grid">
             <div className="top-products-card">
               <div className="card-header">
@@ -408,10 +366,7 @@ export default function Analytics() {
                     <div className="product-details">
                       <span className="product-name">{p.product}</span>
                       <span className="product-profit positive">
-                        ₹
-                        {p.profit.toLocaleString("en-IN", {
-                          minimumFractionDigits: 2,
-                        })}
+                        ₹{formatNumber(p.profit)}
                       </span>
                     </div>
                   </div>

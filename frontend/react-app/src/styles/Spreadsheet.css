@@ -1,11 +1,12 @@
 /* Full viewport container with no branding colors */
 .excel-page-container {
     background-color: #ffffff;
-    height: 100vh;
+    min-height: 100vh;
     display: flex;
     flex-direction: column;
     font-family: 'Segoe UI', Tahoma, sans-serif;
     color: #333;
+    padding-top: 70px;
 }
 
 /* Minimalist Menu */

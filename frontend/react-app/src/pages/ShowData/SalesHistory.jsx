@@ -82,12 +82,34 @@ export default function SalesHistory() {
           },
         });
 
-        if (!res.ok) throw new Error("Failed to fetch sales data");
+        if (!res.ok) {
+          // Try to get error message from response
+          const errorData = await res.json().catch(() => ({}));
+          const errorMessage =
+            errorData.error ||
+            errorData.message ||
+            `Server error (${res.status})`;
+
+          // If unauthorized, redirect to login
+          if (res.status === 401 || res.status === 403) {
+            localStorage.removeItem("token");
+            alert("Your session has expired. Please login again.");
+            navigate("/login");
+            return;
+          }
+
+          throw new Error(errorMessage);
+        }
 
         const data = await res.json();
         setSales(Array.isArray(data) ? data : []);
+        setError(""); // Clear any previous errors
       } catch (err) {
-        setError(err.message || "Something went wrong");
+        console.error("Fetch error:", err);
+        setError(
+          err.message ||
+            "Failed to connect to server. Please check if the backend is running.",
+        );
         setSales([]);
       } finally {
         setLoading(false);

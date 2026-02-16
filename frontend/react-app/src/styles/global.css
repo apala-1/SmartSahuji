@@ -3,3 +3,13 @@ body {
   font-family: Arial, sans-serif;
   background-color: #f8fafc;
 }
+
+/* Prevent navbar overlap on all pages */
+* {
+  box-sizing: border-box;
+}
+
+/* Add scroll margin for sticky navbar */
+html {
+  scroll-padding-top: 80px;
+}
