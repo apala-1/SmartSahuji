@@ -7,7 +7,13 @@ function LandingPage() {
     <div className="landing-page">
       {/* Navigation */}
       <nav className="navbar">
-        <div className="logo">📊 Smart SahuJi</div>
+        <div className="logo-section">
+          <span className="logo-icon">📊</span>
+          <div className="logo-text">
+            <strong>Smart SahuJi</strong>
+            <small>BUSINESS PLATFORM</small>
+          </div>
+        </div>
         <div className="nav-links">
           <a href="#features" className="nav-link">
             Features
@@ -158,26 +164,107 @@ function LandingPage() {
       {/* Footer */}
       <footer className="footer">
         <div className="footer-content">
-          <div className="footer-links">
-            <a href="#features" className="footer-link">
-              Features
-            </a>
-            <a href="#testimonials" className="footer-link">
-              Testimonials
-            </a>
-            <Link to="/login" className="footer-link">
-              Login
-            </Link>
-            <Link to="/signup" className="footer-link">
-              Sign Up
-            </Link>
-            <span className="footer-link">Privacy Policy</span>
-            <span className="footer-link">Terms of Service</span>
+          <div className="footer-grid">
+            <div className="footer-column">
+              <h3 className="footer-heading">📊 Smart SahuJi</h3>
+              <p className="footer-description">
+                AI-powered business analytics platform helping thousands of
+                businesses make smarter decisions with real-time insights and
+                predictions.
+              </p>
+              <div className="footer-social">
+                <span className="social-icon">📘</span>
+                <span className="social-icon">🐦</span>
+                <span className="social-icon">📸</span>
+                <span className="social-icon">💼</span>
+              </div>
+            </div>
+
+            <div className="footer-column">
+              <h4 className="footer-column-title">Product</h4>
+              <a href="#features" className="footer-link">
+                Features
+              </a>
+              <a href="#" className="footer-link">
+                Pricing
+              </a>
+              <a href="#testimonials" className="footer-link">
+                Testimonials
+              </a>
+              <a href="#" className="footer-link">
+                FAQ
+              </a>
+              <a href="#" className="footer-link">
+                Roadmap
+              </a>
+            </div>
+
+            <div className="footer-column">
+              <h4 className="footer-column-title">Company</h4>
+              <a href="#" className="footer-link">
+                About Us
+              </a>
+              <a href="#" className="footer-link">
+                Careers
+              </a>
+              <a href="#" className="footer-link">
+                Blog
+              </a>
+              <a href="#" className="footer-link">
+                Press
+              </a>
+              <a href="#" className="footer-link">
+                Partners
+              </a>
+            </div>
+
+            <div className="footer-column">
+              <h4 className="footer-column-title">Support</h4>
+              <a href="#" className="footer-link">
+                Help Center
+              </a>
+              <a href="#" className="footer-link">
+                Documentation
+              </a>
+              <a href="#" className="footer-link">
+                API Reference
+              </a>
+              <a href="#" className="footer-link">
+                Community
+              </a>
+              <a href="#" className="footer-link">
+                Contact Us
+              </a>
+            </div>
+
+            <div className="footer-column">
+              <h4 className="footer-column-title">Contact</h4>
+              <p className="footer-contact">📧 support@smartsahuji.com</p>
+              <p className="footer-contact">📞 +977 1-4567890</p>
+              <p className="footer-contact">📍 Kathmandu, Nepal</p>
+              <p className="footer-contact">⏰ Mon-Fri: 9AM-6PM</p>
+            </div>
           </div>
-          <p className="footer-text">
-            © 2026 Smart SahuJi. All rights reserved.
-          </p>
-          <p className="footer-text">Contact: support@smartsahuji.com</p>
+
+          <div className="footer-bottom">
+            <p className="footer-text">
+              © 2026 Smart SahuJi. All rights reserved.
+            </p>
+            <div className="footer-legal">
+              <a href="#" className="footer-legal-link">
+                Privacy Policy
+              </a>
+              <a href="#" className="footer-legal-link">
+                Terms of Service
+              </a>
+              <a href="#" className="footer-legal-link">
+                Cookie Policy
+              </a>
+              <a href="#" className="footer-legal-link">
+                Security
+              </a>
+            </div>
+          </div>
         </div>
       </footer>
     </div>
