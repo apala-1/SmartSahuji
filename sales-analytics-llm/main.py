@@ -125,7 +125,9 @@ def analytics(
     # ==============================
     # PERIOD GROUPING
     # ==============================
-    if period == "weekly":
+    if period == "daily":
+        df["period"] = df["date"].dt.strftime("%Y-%m-%d")
+    elif period == "weekly":
         df["period"] = df["date"].dt.strftime("%Y-%U")
     elif period == "monthly":
         df["period"] = df["date"].dt.strftime("%Y-%m")
